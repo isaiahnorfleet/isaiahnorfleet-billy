@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   // Every page is per-user and dynamic; Billy does not use Cache Components.
   cacheComponents: false,
   poweredByHeader: false,
+  // Reuse a page visited in the last 30 seconds when switching tabs. Every save calls
+  // revalidatePath, which clears this cache, so data never looks stale after a change.
+  experimental: { staleTimes: { dynamic: 30 } },
   serverExternalPackages: ["postgres", "web-push"],
   turbopack: {
     rules: {
