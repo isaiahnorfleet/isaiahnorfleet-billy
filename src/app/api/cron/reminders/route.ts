@@ -8,21 +8,39 @@ import { defaultSenders } from "@/lib/reminders/senders";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function authorized(req: NextRequest): boolean {
-  const secret = env().CRON_SECRET;
+function matches(header: string, secret: string | null | undefined): boolean {
   if (!secret || secret.length < 16) return false;
-  const header = req.headers.get("authorization") ?? "";
   const expected = Buffer.from(`Bearer ${secret}`);
   const actual = Buffer.from(header);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
 /**
- * The reminder scheduler. Called every 5 minutes by Supabase pg_cron (POST) and once a day by
- * Vercel Cron (GET) as a backup. Both send "Authorization: Bearer $CRON_SECRET".
+ * Token pg_cron sends. It is generated inside the database (private.scheduler_settings) and never
+ * leaves it except in these requests, so nobody has to copy a secret between services.
+ * Missing locally, where the scheduler migration isn't applied.
+ */
+async function databaseToken(): Promise<string | null> {
+  try {
+    const [row] = await sql()<{ cron_token: string }[]>`select cron_token from private.scheduler_settings where id = 1`;
+    return row?.cron_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function authorized(req: NextRequest): Promise<boolean> {
+  const header = req.headers.get("authorization") ?? "";
+  if (!header.startsWith("Bearer ")) return false;
+  return matches(header, env().CRON_SECRET) || matches(header, await databaseToken());
+}
+
+/**
+ * The reminder scheduler. Called every 5 minutes by Supabase pg_cron (POST, with the database's
+ * own token) and once a day by Vercel Cron (GET, with CRON_SECRET) as a backup.
  */
 async function handle(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await authorized(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const db = sql();
   const [run] = await db<{ id: number }[]>`insert into job_runs (job) values ('reminders') returning id`;
   try {
