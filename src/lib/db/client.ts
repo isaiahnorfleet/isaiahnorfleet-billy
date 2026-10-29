@@ -41,8 +41,8 @@ export function sql(): Sql {
 export async function withUser<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
   if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error("Invalid user id");
   return (await sql().begin(async (tx) => {
-    await tx`select set_config('request.jwt.claims', ${JSON.stringify({ sub: userId, role: "authenticated" })}, true)`;
-    await tx`set local role authenticated`;
+    // One round trip: set_config('role', …, true) is the same as SET LOCAL ROLE.
+    await tx`select set_config('request.jwt.claims', ${JSON.stringify({ sub: userId, role: "authenticated" })}, true), set_config('role', 'authenticated', true)`;
     return fn(tx);
   })) as T;
 }

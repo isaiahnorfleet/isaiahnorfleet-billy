@@ -48,15 +48,26 @@ npm run test:e2e        # builds, then Playwright on iPhone and desktop viewport
 ## Production setup
 
 These are one-time steps. Never paste secret values into chat, issues or commits. They go only
-into Vercel's environment variables and Supabase Vault.
+into Vercel's environment variables.
 
 1. **Supabase project** (region Canada Central). Apply `supabase/migrations/*.sql` in order.
-   The `_scheduler.sql` migration enables pg_cron and pg_net and schedules the 5-minute job.
-2. **Vault secrets** (Supabase SQL editor):
+   The `_scheduler.sql` migration enables pg_cron and pg_net, creates `private.scheduler_settings`
+   with a random token generated inside the database, and schedules the 5-minute job.
+2. **App database login and scheduler URL** (Supabase SQL editor). Create a limited login role for
+   the app instead of using the `postgres` superuser, using your own strong password:
    ```sql
-   select vault.create_secret('https://<your-app-domain>', 'billy_app_url');
-   select vault.create_secret('<same value as CRON_SECRET>', 'billy_cron_secret');
+   create role billy_app login bypassrls password '<strong password>';
+   grant authenticated to billy_app;
+   grant usage on schema public to billy_app;
+   grant select, insert, update, delete on all tables in schema public to billy_app;
+   grant usage, select on all sequences in schema public to billy_app;
+   grant usage on schema auth to billy_app;
+   grant select, delete on auth.users to billy_app;
+   grant usage on schema private to billy_app;
+   grant select on private.scheduler_settings to billy_app;
+   insert into private.scheduler_settings (app_url) values ('https://<your-app-domain>') on conflict (id) do update set app_url = excluded.app_url;
    ```
+   `DATABASE_URL` then uses `billy_app` (as `billy_app.<project-ref>`) on the transaction pooler.
 3. **Supabase Auth** (Dashboard > Authentication):
    - URL Configuration: Site URL = your app URL; add `<app URL>/auth/confirm` to Redirect URLs.
    - Emails > Magic Link template: include the code, e.g. `Your Billy sign-in code is {{ .Token }}`.

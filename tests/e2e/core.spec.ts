@@ -103,8 +103,10 @@ test("one user cannot open another user's bill", async ({ page, browser }) => {
   const url = page.url().split("?")[0];
   const intruder = await newDevice(browser, page);
   await signInOnboarded(intruder, uniqueEmail("intruder"), "Mallory");
-  const res = await intruder.goto(url);
-  expect(res?.status()).toBe(404);
+  // The page streams behind a loading screen, so the HTTP status is already sent; check what renders.
+  await intruder.goto(url);
+  await expect(intruder.getByText("This page could not be found.")).toBeVisible();
+  await expect(intruder.getByText("Private bill")).toHaveCount(0);
   await intruder.goto("/bills");
   await expect(intruder.getByText("Private bill")).toHaveCount(0);
   await intruder.context().close();

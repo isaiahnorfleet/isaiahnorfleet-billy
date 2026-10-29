@@ -9,7 +9,7 @@ iPhone / desktop browser (PWA, service worker)
 Vercel: Next.js app ── server-only code ──► Supabase Postgres (RLS on every table)
         ▲     │                                     │
         │     └──► Resend (email)                   │ pg_cron every 5 min ──► pg_net POST
-        └───────────── /api/cron/reminders ◄────────┘   (Bearer CRON_SECRET from Vault)
+        └───────────── /api/cron/reminders ◄────────┘   (Bearer token generated in the DB)
 ```
 
 | Concern | Owner | Notes |
@@ -31,6 +31,11 @@ Vercel: Next.js app ── server-only code ──► Supabase Postgres (RLS on 
 - RLS policies restrict every row to `auth.uid()`. Column-level grants stop a client from
   re-pointing a payment or reminder at another user, bill or occurrence. Supabase's default
   table grants to `anon`/`authenticated` are revoked first.
+- The app logs in as a limited role `billy_app` (member of `authenticated`, can bypass RLS only
+  for `withService()` work, may read and delete `auth.users` for account deletion), not as `postgres`.
+- The scheduler's token is generated inside the database (`private.scheduler_settings`, not exposed
+  through the Data API). pg_cron sends it; the app reads the same row to check it, so it is never
+  copied between services. `CRON_SECRET` is still accepted for the daily Vercel backup cron.
 - Secrets: `DATABASE_URL`, `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`, `CRON_SECRET` are server-only.
   Only `NEXT_PUBLIC_SUPABASE_URL`, the publishable key and the VAPID public key reach the browser.
 - Validation with zod on every server action. Payment links must be `http(s)` with a real host and
