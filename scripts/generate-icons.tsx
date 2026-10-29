@@ -1,36 +1,36 @@
 /**
  * Renders Billy into PNG app icons. Run: npx tsx scripts/generate-icons.tsx
+ * The artwork is scripts/assets/billy-icon.png: the idle Billy drawing, background removed and
+ * cropped to his head and shoulders so he still reads at home-screen size.
  * Uses the preinstalled Playwright Chromium.
  */
-import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
-import { BillyMascot } from "../src/components/billy/BillyMascot";
 
-const vars = "--billy-ink:#233018;--billy-shade:#9fd24f;--billy-limb:#6f9a3e;--color-lime:#c1f474;--color-ivory:#f4f5ee;--color-peach:#ffb49c;";
-const svg = renderToStaticMarkup(createElement(BillyMascot, { mood: "neutral", size: 100, decorative: true }));
+const LIME = "#c1f474";
+const art = `data:image/png;base64,${readFileSync("scripts/assets/billy-icon.png").toString("base64")}`;
 
-function page(size: number, pad: number, radius: number, bg = "#141714") {
-  const inner = size - pad * 2;
-  return `<html><body style="margin:0;background:transparent"><div style="${vars}width:${size}px;height:${size}px;background:${bg};border-radius:${radius}px;display:flex;align-items:center;justify-content:center;overflow:hidden">
-  <div style="height:${inner}px;display:flex">${svg.replace(/width="100" height="135"/, `height="${inner}" width="${(inner * 120) / 162}"`)}</div></div>
-  <style>.billy-body,.billy-wave,.billy-sparks{animation:none!important}</style></body></html>`;
+// `scale` is the artwork's width as a share of the icon; maskable icons keep Billy inside the safe zone.
+function page(size: number, scale: number, radius: number) {
+  return `<html><body style="margin:0;background:transparent"><div style="width:${size}px;height:${size}px;background:${LIME};border-radius:${radius}px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">
+  <img src="${art}" style="width:${size * scale}px;margin-bottom:${size * (1 - scale) * 0.12}px"></div></body></html>`;
 }
 
-const targets: { file: string; size: number; pad: number; radius: number; bg?: string }[] = [
-  { file: "icon-192.png", size: 192, pad: 22, radius: 0 },
-  { file: "icon-512.png", size: 512, pad: 60, radius: 0 },
-  { file: "maskable-512.png", size: 512, pad: 110, radius: 0 },
-  { file: "apple-touch-icon.png", size: 180, pad: 20, radius: 0 },
-  { file: "favicon-32.png", size: 32, pad: 2, radius: 6 },
+const targets: { file: string; size: number; scale: number; radius: number }[] = [
+  { file: "public/icons/icon-192.png", size: 192, scale: 0.86, radius: 0 },
+  { file: "public/icons/icon-512.png", size: 512, scale: 0.86, radius: 0 },
+  { file: "public/icons/maskable-512.png", size: 512, scale: 0.66, radius: 0 },
+  { file: "public/icons/apple-touch-icon.png", size: 180, scale: 0.86, radius: 0 },
+  { file: "public/icons/favicon-32.png", size: 32, scale: 0.96, radius: 7 },
+  { file: "src/app/icon.png", size: 32, scale: 0.96, radius: 7 },
 ];
 
 (async () => {
   const browser = await chromium.launch();
   for (const t of targets) {
     const p = await browser.newPage({ viewport: { width: t.size, height: t.size } });
-    await p.setContent(page(t.size, t.pad, t.radius, t.bg));
-    await p.screenshot({ path: `public/icons/${t.file}`, omitBackground: true });
+    await p.setContent(page(t.size, t.scale, t.radius), { waitUntil: "load" });
+    await p.screenshot({ path: t.file, omitBackground: true });
     await p.close();
   }
   // Monochrome badge for Android status bar.
