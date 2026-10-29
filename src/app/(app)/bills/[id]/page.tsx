@@ -50,7 +50,7 @@ export default async function BillPage({ params, searchParams }: { params: Promi
             <h1 className="font-display text-3xl font-extrabold break-words">{bill.name}</h1>
             <p className="text-muted">
               {CATEGORY_LABELS[bill.category as Category]} · {RECURRENCE_LABELS[bill.recurrence]}
-              {bill.autopay ? " · Autopay" : ""}
+              {bill.autopay ? (bill.autopay_account ? ` · Autopay from ${bill.autopay_account}` : " · Autopay") : ""}
               {bill.status === "archived" ? " · Archived" : ""}
             </p>
           </div>
@@ -108,7 +108,7 @@ export default async function BillPage({ params, searchParams }: { params: Promi
                 </div>
                 <OccurrenceActions
                   today={ctx.today}
-                  occ={{ id: o.id, billId: bill.id, billName: bill.name, amountMinor: o.amount_minor, currency: o.currency, dueDate: o.due_date, status: o.status, autopay: bill.autopay, paymentUrl: bill.payment_url, paymentId: o.payment_id, plannedPaymentDate: o.planned_payment_date, note: o.note }}
+                  occ={{ id: o.id, billId: bill.id, billName: bill.name, amountMinor: o.amount_minor, currency: o.currency, dueDate: o.due_date, status: o.status, autopay: bill.autopay, autopayAccount: bill.autopay_account, paymentUrl: bill.payment_url, paymentId: o.payment_id, plannedPaymentDate: o.planned_payment_date, note: o.note }}
                 />
               </li>
             ))}
@@ -146,7 +146,7 @@ export default async function BillPage({ params, searchParams }: { params: Promi
                 ) : (
                   <OccurrenceActions
                     today={ctx.today}
-                    occ={{ id: o.id, billId: bill.id, billName: bill.name, amountMinor: o.amount_minor, currency: o.currency, dueDate: o.due_date, status: o.status, autopay: bill.autopay, paymentUrl: bill.payment_url, paymentId: o.payment_id, plannedPaymentDate: null, note: o.note }}
+                    occ={{ id: o.id, billId: bill.id, billName: bill.name, amountMinor: o.amount_minor, currency: o.currency, dueDate: o.due_date, status: o.status, autopay: bill.autopay, autopayAccount: bill.autopay_account, paymentUrl: bill.payment_url, paymentId: o.payment_id, plannedPaymentDate: null, note: o.note }}
                   />
                 )}
               </li>

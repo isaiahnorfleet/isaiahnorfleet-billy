@@ -32,6 +32,7 @@ export const billInput = z
     recurrence: z.enum(RECURRENCES),
     due_date: localDate,
     autopay: z.boolean().default(false),
+    autopay_account: optionalText(60),
     payment_url: z.string().optional(),
     notes: optionalText(1000),
     reminders_enabled: z.boolean().default(true),
@@ -51,7 +52,12 @@ export const billInput = z
         return z.NEVER;
       }
     }
-    return { ...v, amount_minor, payment_url };
+    // A label is enough to recognize the account; refuse anything that looks like a full account or card number.
+    if (v.autopay_account && /\d{5,}/.test(v.autopay_account.replace(/[\s-]/g, ""))) {
+      ctx.addIssue({ code: "custom", path: ["autopay_account"], message: "Use a nickname and at most the last 4 digits, not the full number" });
+      return z.NEVER;
+    }
+    return { ...v, amount_minor, payment_url, autopay_account: v.autopay ? v.autopay_account : null };
   });
 export type BillInput = z.output<typeof billInput>;
 

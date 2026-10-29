@@ -33,7 +33,7 @@ export default async function EditBillPage({ params }: { params: Promise<{ id: s
       <Card className="space-y-2 p-4 text-sm text-muted">
         <p className="font-semibold text-ivory">What changes apply to</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>Name, category, notes, link, autopay and reminders: the whole bill.</li>
+          <li>Name, category, notes, link, autopay account and reminders: the whole bill.</li>
           <li>Amount: upcoming unpaid cycles. Overdue and paid cycles keep their amounts.</li>
           <li>Next due date or how it repeats: resets the schedule from that date. Overdue and paid cycles stay in history.</li>
           <li>To change just one cycle, use &ldquo;Edit this occurrence only&rdquo; from the bill&apos;s ••• menu.</li>
@@ -50,6 +50,7 @@ export default async function EditBillPage({ params }: { params: Promise<{ id: s
             recurrence: bill.recurrence,
             due_date: nextDue,
             autopay: bill.autopay,
+            autopay_account: bill.autopay_account ?? "",
             payment_url: bill.payment_url ?? "",
             notes: bill.notes ?? "",
             reminders_enabled: bill.reminders_enabled,

@@ -33,6 +33,7 @@ export const billInput = (over: Record<string, unknown> = {}) => ({
   recurrence: "monthly" as const,
   due_date: "2026-11-15",
   autopay: false,
+  autopay_account: null,
   payment_url: null,
   notes: null,
   reminders_enabled: true,
