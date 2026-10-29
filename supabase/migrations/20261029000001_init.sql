@@ -23,15 +23,15 @@ create type public.delivery_status as enum ('accepted', 'failed', 'expired');
 -- Helpers
 -- ---------------------------------------------------------------------------
 create or replace function public.set_updated_at() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = '' as $$
 begin
   new.updated_at = now();
   return new;
 end $$;
 
 create or replace function public.is_valid_time_zone(tz text) returns boolean
-language sql stable as $$
-  select exists (select 1 from pg_timezone_names where name = tz)
+language sql stable set search_path = '' as $$
+  select exists (select 1 from pg_catalog.pg_timezone_names where name = tz)
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -310,7 +310,9 @@ create policy deliveries_select on public.notification_deliveries for select to 
   using (user_id = (select auth.uid()));
 -- rate_limits and job_runs: no policies, so only privileged roles can touch them.
 
--- Grants for the authenticated role (Supabase grants these on public by default; explicit for clarity).
+-- Grants. Supabase's default privileges give anon and authenticated ALL on new public tables,
+-- which would bypass the column-level limits below, so start from nothing and grant explicitly.
+revoke all on all tables in schema public from anon, authenticated;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.profiles, public.notification_preferences, public.bills,
   public.bill_occurrences, public.push_subscriptions to authenticated;

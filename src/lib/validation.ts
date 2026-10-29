@@ -7,7 +7,6 @@ import { normalizePaymentUrl } from "@/lib/domain/url";
 
 /** Strip control characters and trim. React escapes output, but we also keep stored text clean. */
 export function cleanText(value: string): string {
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
 }
 
