@@ -11,7 +11,9 @@ function createClient(): Sql {
   const url = env().DATABASE_URL;
   // Supabase's transaction pooler (port 6543) does not support prepared statements.
   const pooled = /:6543\//.test(url);
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
   return postgres(url, {
+    ssl: local ? false : "require",
     max: pooled ? 3 : 5,
     prepare: !pooled,
     idle_timeout: 20,
