@@ -20,7 +20,7 @@ _Last updated: 2026-10-29._
 | 7 | PWA: manifest, icons, service worker, per-device push setup, iOS install steps | locally tested (Chromium) |
 | 8 | Security: validation, rate limits, URL safety, protected cron, export, account deletion | locally tested |
 | 9 | Tests: unit (42), database (37), browser on iPhone + desktop viewports (36 + 2 skipped by design) | passing |
-| 10 | Deploy, configure services, verify a real scheduled reminder with the app closed | in progress |
+| 10 | Deploy, configure services, verify a real scheduled reminder with the app closed | verified end to end |
 
 ## Required workflows (brief §14)
 
@@ -45,15 +45,21 @@ _Last updated: 2026-10-29._
 
 ## Production
 
+Live at https://billy-phi-five.vercel.app. Each "verified" row was checked on the live site on
+2026-10-29, on Isaiah's iPhone (installed to the Home Screen) and PC.
+
 | Item | Status |
 |---|---|
-| Supabase project "billy" (Canada Central), schema + RLS migration | deployed |
-| Scheduler migration (pg_cron + pg_net, Vault secrets) | pending: needs the live app URL |
-| Supabase Auth: Site URL, redirect URL, code in the email template | pending: dashboard step for Isaiah |
-| Vercel project + environment variables | pending: Vercel connector needs team access approval |
-| Resend API key and sender | pending |
-| Live sign-in, bills, cross-device, payments | pending |
-| Scheduled reminder received with the app closed (iPhone) | pending: needs Isaiah's iPhone |
+| Supabase project "billy" (Canada Central): schema, RLS, indexes, scheduler | deployed |
+| App database login `billy_app` (limited role, transaction pooler) | deployed; `/api/health` reports the DB connected |
+| Vercel project, environment variables, production branch `main` | deployed |
+| Supabase Auth email through Resend SMTP, 6-digit code template | verified end to end (code received, signed in) |
+| Sign-in on iPhone Home Screen app and PC, same bills on both | verified end to end |
+| pg_cron 5-minute scheduler reaching the app | verified (job runs return 200, `job_runs` ok) |
+| Test reminder with the app closed (iPhone) | verified end to end (push accepted for both devices, notification received) |
+| Real bill reminder at 9:00 AM Toronto, app closed | verified end to end (sent 13:00 UTC by the scheduler, received) |
+| Mark paid from the reminder: history, next cycle, no further reminders | verified end to end (occurrence paid with 1 payment, next cycle Dec 1 open, 0 pending reminders on the paid cycle) |
+| Email reminders | deployed, not yet received in production (push is the default channel) |
 
 ## Known limitations (release 1)
 
