@@ -22,6 +22,7 @@ export interface OccurrenceSummary {
   dueDate: string;
   status: "open" | "paid" | "skipped";
   autopay: boolean;
+  autopayAccount: string | null;
   paymentUrl: string | null;
   paymentId: string | null;
   plannedPaymentDate: string | null;
@@ -192,7 +193,7 @@ export function MarkPaidDialog({ open, occ, today, onClose }: { open: boolean; o
       >
         {occ.autopay && (
           <p className="rounded-xl border border-amber/40 bg-amber/10 p-3 text-sm text-amber">
-            This bill is on autopay. Only confirm once you&apos;ve seen the charge go through. Billy can&apos;t check your bank.
+            This bill is on autopay{occ.autopayAccount ? ` from ${occ.autopayAccount}` : ""}. Only confirm once you&apos;ve seen the charge go through. Billy can&apos;t check your bank.
           </p>
         )}
         <Field label="Amount paid" htmlFor={`pay-amount-${occ.id}`} error={errors.amount} hint="Full payment only for now.">

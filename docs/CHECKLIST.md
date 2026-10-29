@@ -19,7 +19,7 @@ _Last updated: 2026-10-29._
 | 6 | Reminder engine: planner, claims, push + email, quiet hours, snooze, cap, delivery log | locally tested (fake providers) |
 | 7 | PWA: manifest, icons, service worker, per-device push setup, iOS install steps | locally tested (Chromium) |
 | 8 | Security: validation, rate limits, URL safety, protected cron, export, account deletion | locally tested |
-| 9 | Tests: unit (42), database (37), browser on iPhone + desktop viewports (36 + 2 skipped by design) | passing |
+| 9 | Tests: unit (45), database (37), browser on iPhone + desktop viewports (38 + 2 skipped by design) | passing |
 | 10 | Deploy, configure services, verify a real scheduled reminder with the app closed | verified end to end |
 
 ## Required workflows (brief §14)

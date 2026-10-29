@@ -20,7 +20,7 @@ export default async function NewBillPage() {
       <h1 className="font-display text-3xl font-extrabold">Add a bill</h1>
       <Card className="p-5 sm:p-6">
         <BillForm
-          initial={{ name: "", amount: "", currency: ctx.profile.currency, category: "other", recurrence: "monthly", due_date: "", autopay: false, payment_url: "", notes: "", reminders_enabled: true, reminder_offsets: null }}
+          initial={{ name: "", amount: "", currency: ctx.profile.currency, category: "other", recurrence: "monthly", due_date: "", autopay: false, autopay_account: "", payment_url: "", notes: "", reminders_enabled: true, reminder_offsets: null }}
           today={ctx.today}
           defaultOffsets={prefs.default_offsets}
           submitLabel="Add bill"

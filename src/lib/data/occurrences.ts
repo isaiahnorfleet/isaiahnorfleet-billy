@@ -58,6 +58,7 @@ export interface OccurrenceRow {
   category: string;
   recurrence: Recurrence;
   autopay: boolean;
+  autopay_account: string | null;
   payment_url: string | null;
   due_date: LocalDate;
   scheduled_date: LocalDate;
@@ -75,7 +76,7 @@ export interface OccurrenceRow {
 }
 
 const OCCURRENCE_SELECT = (tx: Tx) => tx`
-  select o.id, o.bill_id, b.name as bill_name, b.category, b.recurrence, b.autopay, b.payment_url,
+  select o.id, o.bill_id, b.name as bill_name, b.category, b.recurrence, b.autopay, b.autopay_account, b.payment_url,
          o.due_date, o.scheduled_date, o.amount_minor, o.currency, o.status, o.planned_payment_date, o.note,
          o.snoozed_until, o.amount_overridden, o.due_overridden,
          p.id as payment_id, p.paid_on, p.amount_minor as paid_amount_minor

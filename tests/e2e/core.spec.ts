@@ -97,6 +97,25 @@ test("validation errors are shown and nothing is saved", async ({ page }) => {
   await expect(page).toHaveURL(/\/bills\/new/);
 });
 
+test("an autopay bill shows which account it's paid from", async ({ page }) => {
+  await signInOnboarded(page, uniqueEmail("autopay"));
+  await page.goto("/bills/new");
+  await page.fill("#name", "Phone");
+  await page.fill("#amount", "65");
+  await page.fill("#due_date", torontoToday(3));
+  await expect(page.locator("#autopay_account")).toHaveCount(0);
+  await page.getByLabel("On autopay").check();
+  await page.fill("#autopay_account", "TD Chequing 12345678");
+  await page.getByRole("button", { name: "Add bill" }).click();
+  await expect(page.getByText("Use a nickname and at most the last 4 digits")).toBeVisible();
+  await page.fill("#autopay_account", "TD Chequing ••5678");
+  await page.getByRole("button", { name: "Add bill" }).click();
+  await page.waitForURL(/\/bills\/[0-9a-f-]{36}\?saved=1/);
+  await expect(page.getByText("Autopay from TD Chequing ••5678").first()).toBeVisible();
+  await page.goto("/bills");
+  await expect(page.getByText("Autopay from TD Chequing ••5678").first()).toBeVisible();
+});
+
 test("one user cannot open another user's bill", async ({ page, browser }) => {
   await signInOnboarded(page, uniqueEmail("owner"));
   await addBill(page, { name: "Private bill", amount: "10", due: torontoToday(2) });

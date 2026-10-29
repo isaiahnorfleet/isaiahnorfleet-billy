@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveBillAction } from "@/app/actions/bills";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ export interface BillFormValues {
   recurrence: Recurrence;
   due_date: string;
   autopay: boolean;
+  autopay_account: string;
   payment_url: string;
   notes: string;
   reminders_enabled: boolean;
@@ -48,6 +49,7 @@ export function BillForm({
   const isEdit = Boolean(initial.id);
   const [remindMode, setRemindMode] = useState<"default" | "custom" | "off">(!initial.reminders_enabled ? "off" : initial.reminder_offsets ? "custom" : "default");
   const [recurrence, setRecurrence] = useState<Recurrence>(initial.recurrence);
+  const [autopay, setAutopay] = useState(initial.autopay);
   const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
 
   useEffect(() => {
@@ -60,7 +62,17 @@ export function BillForm({
   const errId = (k: string) => (errors[k] ? `${k}-error` : undefined);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form
+      // Submitting through onSubmit (not the action prop) keeps what was typed when validation fails;
+      // React resets a form after its action runs.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="space-y-5"
+      noValidate
+    >
       {initial.id && <input type="hidden" name="bill_id" value={initial.id} />}
       <input type="hidden" name="currency" value={initial.currency} />
       {state && !state.ok && (
@@ -114,13 +126,20 @@ export function BillForm({
         </Field>
       </div>
 
-      <label className="flex items-start gap-3 rounded-xl border border-line p-3">
-        <input type="checkbox" name="autopay" defaultChecked={initial.autopay} className="mt-1 h-5 w-5 accent-[var(--color-lime)]" />
-        <span>
-          <span className="block font-semibold">On autopay</span>
-          <span className="block text-sm text-muted">Billy will still ask you to confirm the charge went through. Autopay isn&apos;t the same as paid.</span>
-        </span>
-      </label>
+      <div className="space-y-4 rounded-xl border border-line p-3">
+        <label className="flex items-start gap-3">
+          <input type="checkbox" name="autopay" checked={autopay} onChange={(e) => setAutopay(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-lime)]" />
+          <span>
+            <span className="block font-semibold">On autopay</span>
+            <span className="block text-sm text-muted">Billy will still ask you to confirm the charge went through. Autopay isn&apos;t the same as paid.</span>
+          </span>
+        </label>
+        {autopay && (
+          <Field label="Paid from (optional)" htmlFor="autopay_account" error={errors.autopay_account} hint="A nickname for the bank account or card, like “TD Chequing ••1234”. Never the full number.">
+            <Input id="autopay_account" name="autopay_account" defaultValue={initial.autopay_account} placeholder="TD Chequing ••1234" maxLength={60} autoComplete="off" invalid={!!errors.autopay_account} aria-describedby={errId("autopay_account")} />
+          </Field>
+        )}
+      </div>
 
       <Field label="Payment website (optional)" htmlFor="payment_url" error={errors.payment_url} hint="Where you pay this bill. You'll pay on their site; Billy never asks for bank logins.">
         <Input id="payment_url" name="payment_url" type="url" inputMode="url" defaultValue={initial.payment_url} placeholder="https://" invalid={!!errors.payment_url} />

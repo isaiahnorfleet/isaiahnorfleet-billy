@@ -19,6 +19,7 @@ function parseBillForm(form: FormData) {
     recurrence: String(form.get("recurrence") ?? ""),
     due_date: String(form.get("due_date") ?? ""),
     autopay: form.get("autopay") === "on",
+    autopay_account: String(form.get("autopay_account") ?? ""),
     payment_url: String(form.get("payment_url") ?? ""),
     notes: String(form.get("notes") ?? ""),
     reminders_enabled: remindMode !== "off",

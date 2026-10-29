@@ -41,7 +41,7 @@ export function BillRow({
           </Link>
           <p className="truncate text-sm text-muted">
             {CATEGORY_LABELS[category as Category] ?? "Other"} · {RECURRENCE_LABELS[recurrence]}
-            {occ.autopay ? " · Autopay" : ""}
+            {occ.autopay ? (occ.autopayAccount ? ` · Autopay from ${occ.autopayAccount}` : " · Autopay") : ""}
           </p>
         </div>
         <div className="text-right">

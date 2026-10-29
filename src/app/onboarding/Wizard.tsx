@@ -127,7 +127,7 @@ export function OnboardingWizard(props: {
           <h1 className="font-display text-3xl font-extrabold">Add your first real bill.</h1>
           <p className="mt-2 mb-6 text-muted">Rent, hydro, phone… whatever&apos;s next. You can add the rest later.</p>
           <BillForm
-            initial={{ name: "", amount: "", currency: props.currency, category: "other", recurrence: "monthly", due_date: "", autopay: false, payment_url: "", notes: "", reminders_enabled: true, reminder_offsets: null }}
+            initial={{ name: "", amount: "", currency: props.currency, category: "other", recurrence: "monthly", due_date: "", autopay: false, autopay_account: "", payment_url: "", notes: "", reminders_enabled: true, reminder_offsets: null }}
             today={props.today}
             defaultOffsets={props.defaultOffsets}
             submitLabel="Add bill"

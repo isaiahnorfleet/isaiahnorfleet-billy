@@ -14,6 +14,7 @@ export interface BillRow {
   anchor_date: LocalDate;
   track_from: LocalDate;
   autopay: boolean;
+  autopay_account: string | null;
   payment_url: string | null;
   notes: string | null;
   reminders_enabled: boolean;
@@ -35,10 +36,10 @@ export interface BillListRow extends BillRow {
 export async function createBill(tx: Tx, userId: string, input: BillInput, today: LocalDate): Promise<string> {
   const [row] = await tx<{ id: string }[]>`
     insert into bills (user_id, name, amount_minor, currency, category, recurrence, anchor_date, track_from,
-                       autopay, payment_url, notes, reminders_enabled, reminder_offsets)
+                       autopay, autopay_account, payment_url, notes, reminders_enabled, reminder_offsets)
     values (${userId}, ${input.name}, ${input.amount_minor}, ${input.currency}, ${input.category}, ${input.recurrence},
-            ${input.due_date}, ${input.due_date}, ${input.autopay}, ${input.payment_url}, ${input.notes},
-            ${input.reminders_enabled}, ${input.reminder_offsets})
+            ${input.due_date}, ${input.due_date}, ${input.autopay}, ${input.autopay_account}, ${input.payment_url},
+            ${input.notes}, ${input.reminders_enabled}, ${input.reminder_offsets})
     returning id`;
   await materializeOccurrences(tx, userId, today);
   return row.id;
@@ -76,7 +77,7 @@ export type AmountScope = "future" | "none";
 
 /**
  * Update a bill's definition.
- * - Name, category, notes, link, autopay and reminder settings apply to the bill everywhere.
+ * - Name, category, notes, link, autopay (and its account) and reminder settings apply to the bill everywhere.
  * - A new amount applies to open occurrences due today or later that were not individually edited.
  *   Overdue and paid occurrences keep the amount they had.
  * - A new schedule (due date or recurrence) replaces open occurrences due today or later.
@@ -94,7 +95,8 @@ export async function updateBill(tx: Tx, userId: string, billId: string, input: 
 
   await tx`
     update bills set name = ${input.name}, amount_minor = ${input.amount_minor}, currency = ${input.currency},
-      category = ${input.category}, autopay = ${input.autopay}, payment_url = ${input.payment_url}, notes = ${input.notes},
+      category = ${input.category}, autopay = ${input.autopay},
+      autopay_account = ${input.autopay_account}, payment_url = ${input.payment_url}, notes = ${input.notes},
       reminders_enabled = ${input.reminders_enabled}, reminder_offsets = ${input.reminder_offsets}
     where id = ${billId} and user_id = ${userId}`;
 

@@ -155,6 +155,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                     <p className="truncate font-semibold">{b.name}</p>
                     <p className="truncate text-sm text-muted">
                       {CATEGORY_LABELS[b.category as Category]} · {RECURRENCE_LABELS[b.recurrence]}
+                      {b.autopay ? (b.autopay_account ? ` · Autopay from ${b.autopay_account}` : " · Autopay") : ""}
                       {b.overdue_count > 1 ? ` · ${b.overdue_count} unpaid cycles` : ""}
                     </p>
                   </div>
