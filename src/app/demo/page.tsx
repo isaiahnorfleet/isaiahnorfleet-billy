@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertCircle, CalendarClock, CircleCheck, Sun } from "lucide-react";
 import { BillyBanner } from "@/components/billy/BillyBanner";
-import { BillyMascot } from "@/components/billy/BillyMascot";
+import { AnimatedBilly } from "@/components/billy/AnimatedBilly";
 import { StatCard } from "@/components/app/StatCard";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { LinkButton } from "@/components/ui/Button";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { BILLY_ANIMATIONS } from "@/lib/domain/billy-animation";
 import { dashboardMessage } from "@/lib/domain/billy-messages";
 import { addDays, formatDateLabel, relativeDayLabel, todayIn } from "@/lib/domain/dates";
 import { formatMoney } from "@/lib/domain/money";
@@ -73,8 +74,8 @@ export default function DemoPage() {
         ))}
       </ul>
       <div className="flex flex-wrap justify-center gap-6 pt-6">
-        {(["neutral", "heads_up", "due_today", "overdue", "celebrating", "all_clear"] as const).map((m) => (
-          <BillyMascot key={m} mood={m} size={84} />
+        {BILLY_ANIMATIONS.map((a) => (
+          <AnimatedBilly key={a} animation={a} size={84} loading="lazy" />
         ))}
       </div>
     </main>

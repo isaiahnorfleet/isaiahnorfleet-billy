@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BillyMascot } from "@/components/billy/BillyMascot";
+import { AnimatedBilly } from "@/components/billy/AnimatedBilly";
 import { BillForm } from "@/components/app/BillForm";
 import { PushSetup } from "@/components/app/PushSetup";
 import { Button } from "@/components/ui/Button";
@@ -59,7 +59,7 @@ export function OnboardingWizard(props: {
 
       {step === 0 && (
         <section className="text-center">
-          <BillyMascot mood="heads_up" size={150} className="mx-auto" />
+          <AnimatedBilly mood="heads_up" size={150} className="mx-auto" />
           <h1 className="mt-6 font-display text-4xl font-extrabold">I&apos;m Billy.</h1>
           <p className="mx-auto mt-3 max-w-md text-lg text-muted">
             I keep track of what you owe and when, remind you before it&apos;s due, and cheer when it&apos;s handled. Straight talk, always on your side.
