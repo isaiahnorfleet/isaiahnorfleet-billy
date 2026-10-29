@@ -31,7 +31,7 @@ export async function sendCodeAction(rawEmail: string): Promise<ActionResult> {
   if (!allowed(parsed.data)) return failure("This Billy is private. That email isn't on the guest list.");
   if (env().AUTH_MODE === "dev") return { ok: true };
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({ email: parsed.data, options: { shouldCreateUser: true } });
+  const { error } = await supabase.auth.signInWithOtp({ email: parsed.data, options: { shouldCreateUser: true, emailRedirectTo: `${env().APP_URL}/auth/confirm` } });
   if (error) {
     console.error("signInWithOtp failed", error.status, error.code);
     return failure(error.status === 429 ? "Too many attempts. Try again in a few minutes." : "Couldn't send the code. Try again.");

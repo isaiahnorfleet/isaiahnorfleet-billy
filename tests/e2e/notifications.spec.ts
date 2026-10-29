@@ -2,10 +2,6 @@ import { expect, test } from "@playwright/test";
 import { E2E_CRON_SECRET } from "../../playwright.config";
 import { addBill, db, signInOnboarded, torontoToday, uniqueEmail } from "./helpers";
 
-test.afterAll(async () => {
-  await db.end();
-});
-
 test("the scheduler endpoint rejects requests without the secret", async ({ request }) => {
   expect((await request.post("/api/cron/reminders")).status()).toBe(401);
   expect((await request.post("/api/cron/reminders", { headers: { authorization: "Bearer wrong" } })).status()).toBe(401);
@@ -64,7 +60,8 @@ test("a real bill reminder is sent by the scheduler and stops after payment", as
   expect(pending[0].n).toBe(0);
 });
 
-test("denied notification permission does not break the app", async ({ page }) => {
+test("denied notification permission does not break the app", async ({ page, isMobile }) => {
+  test.skip(isMobile, "iPhone Safari shows install steps first; covered by the next test");
   await page.addInitScript(() => {
     Object.defineProperty(window, "Notification", {
       configurable: true,

@@ -195,14 +195,14 @@ export function MarkPaidDialog({ open, occ, today, onClose }: { open: boolean; o
             This bill is on autopay. Only confirm once you&apos;ve seen the charge go through. Billy can&apos;t check your bank.
           </p>
         )}
-        <Field label="Amount paid" htmlFor="pay-amount" error={errors.amount} hint="Full payment only for now.">
-          <Input id="pay-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} invalid={!!errors.amount} required className="tabular" />
+        <Field label="Amount paid" htmlFor={`pay-amount-${occ.id}`} error={errors.amount} hint="Full payment only for now.">
+          <Input id={`pay-amount-${occ.id}`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} invalid={!!errors.amount} required className="tabular" />
         </Field>
-        <Field label="Payment date" htmlFor="pay-date" error={errors.paid_on}>
-          <Input id="pay-date" type="date" value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} invalid={!!errors.paid_on} required />
+        <Field label="Payment date" htmlFor={`pay-date-${occ.id}`} error={errors.paid_on}>
+          <Input id={`pay-date-${occ.id}`} type="date" value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} invalid={!!errors.paid_on} required />
         </Field>
-        <Field label="Note (optional)" htmlFor="pay-note" hint="e.g. confirmation number">
-          <Input id="pay-note" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+        <Field label="Note (optional)" htmlFor={`pay-note-${occ.id}`} hint="e.g. confirmation number">
+          <Input id={`pay-note-${occ.id}`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <p className="text-sm text-muted">This records that you paid. It doesn&apos;t move any money.</p>
         <Button type="submit" className="w-full" size="lg" disabled={pending}>
@@ -236,11 +236,11 @@ function CantPayDialog({ open, occ, today, onClose }: { open: boolean; occ: Occu
           });
         }}
       >
-        <Field label="Planned payment date" htmlFor="plan-date">
-          <Input id="plan-date" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
+        <Field label="Planned payment date" htmlFor={`plan-date-${occ.id}`}>
+          <Input id={`plan-date-${occ.id}`} type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label="Note (optional)" htmlFor="plan-note" hint="e.g. called them, payment arrangement">
-          <Textarea id="plan-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+        <Field label="Note (optional)" htmlFor={`plan-note-${occ.id}`} hint="e.g. called them, payment arrangement">
+          <Textarea id={`plan-note-${occ.id}`} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <label className="flex items-center gap-3">
           <input type="checkbox" checked={remind} onChange={(e) => setRemind(e.target.checked)} className="h-5 w-5 accent-[var(--color-lime)]" />
@@ -281,14 +281,14 @@ function EditOccurrenceDialog({ open, occ, onClose }: { open: boolean; occ: Occu
           });
         }}
       >
-        <Field label="Amount" htmlFor="occ-amount" error={errors.amount}>
-          <Input id="occ-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="tabular" required />
+        <Field label="Amount" htmlFor={`occ-amount-${occ.id}`} error={errors.amount}>
+          <Input id={`occ-amount-${occ.id}`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="tabular" required />
         </Field>
-        <Field label="Due date" htmlFor="occ-due" error={errors.due_date}>
-          <Input id="occ-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} required />
+        <Field label="Due date" htmlFor={`occ-due-${occ.id}`} error={errors.due_date}>
+          <Input id={`occ-due-${occ.id}`} type="date" value={due} onChange={(e) => setDue(e.target.value)} required />
         </Field>
-        <Field label="Note" htmlFor="occ-note">
-          <Input id="occ-note" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+        <Field label="Note" htmlFor={`occ-note-${occ.id}`}>
+          <Input id={`occ-note-${occ.id}`} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <Button type="submit" className="w-full" size="lg" disabled={pending}>
           Save this occurrence

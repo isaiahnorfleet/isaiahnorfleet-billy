@@ -2,7 +2,7 @@ import { expect, type Browser, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { E2E_DB } from "../../playwright.config";
 
-export const db = postgres(E2E_DB, { onnotice: () => {}, max: 2 });
+export const db = postgres(E2E_DB, { onnotice: () => {}, max: 2, idle_timeout: 2 });
 
 export function uniqueEmail(tag: string) {
   return `${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;

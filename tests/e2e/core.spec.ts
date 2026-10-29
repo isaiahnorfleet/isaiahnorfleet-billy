@@ -1,10 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { addBill, db, expectNoHorizontalOverflow, newDevice, signIn, signInOnboarded, torontoToday, uniqueEmail } from "./helpers";
 
-test.afterAll(async () => {
-  await db.end();
-});
-
 test("onboarding: confirm profile, add a first bill, land on the dashboard", async ({ page }) => {
   await signIn(page, uniqueEmail("onb"));
   await expect(page).toHaveURL(/\/onboarding/);
@@ -69,7 +65,7 @@ test("undo from the toast right after marking paid", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Mark Gym paid" }).click();
   await page.getByRole("button", { name: "Confirm payment" }).click();
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.getByText("Payment undone")).toBeVisible();
   const [row] = await db`select count(*)::int as n from payments p join bills b on b.id = p.bill_id where b.name = 'Gym' and p.voided_at is null`;
   expect(row.n).toBe(0);
@@ -79,12 +75,12 @@ test("overdue stays overdue and the original due date is kept after 'can't pay y
   await signInOnboarded(page, uniqueEmail("cantpay"));
   await addBill(page, { name: "Water", amount: "60", due: torontoToday(-10) });
   await page.goto("/");
-  const row = page.getByTestId("bill-row").filter({ hasText: "Water" });
+  const row = page.getByTestId("bill-row").filter({ hasText: "Water" }).filter({ hasText: "Was due" });
   await expect(row).toContainText("Overdue");
   await row.getByRole("button", { name: "More actions for Water" }).click();
   await page.getByRole("button", { name: /Can't pay yet/ }).click();
-  await page.fill("#plan-date", torontoToday(4));
-  await page.getByRole("button", { name: "Save plan" }).click();
+  await page.locator("dialog[open]").getByLabel("Planned payment date").fill(torontoToday(4));
+  await page.locator("dialog[open]").getByRole("button", { name: "Save plan" }).click();
   await expect(page.getByText("Plan saved")).toBeVisible();
   await expect(row).toContainText("Overdue");
   await expect(row).toContainText("Plan: pay");
@@ -121,7 +117,7 @@ test("calendar shows bills on their dates, including future recurring cycles", a
   await expect(page.getByRole("link", { name: /1 bill/ }).first()).toBeVisible();
   // Three months ahead: still scheduled even though not stored yet.
   for (let i = 0; i < 3; i++) await page.getByRole("link", { name: "Next month" }).click();
-  await expect(page.getByText("Rent").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Rent/ }).first()).toBeVisible();
   await expect(page.getByText("Scheduled").first()).toBeVisible();
 });
 
@@ -136,7 +132,7 @@ test("sign out and back in keeps data", async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in/);
   await signIn(page, email);
   await page.goto("/bills");
-  await expect(page.getByText("Insurance")).toBeVisible();
+  await expect(page.getByTestId("bills-list-row").filter({ hasText: "Insurance" })).toContainText("$164.20");
 });
 
 test("demo mode is clearly labelled and separate from real data", async ({ page }) => {

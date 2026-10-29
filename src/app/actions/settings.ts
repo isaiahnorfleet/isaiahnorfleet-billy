@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
 import { env, emailConfigured, pushConfigured } from "@/lib/env";
 import { sql, withService, withUser } from "@/lib/db/client";
 import { requireUserForAction } from "@/lib/auth/session";
@@ -177,12 +176,15 @@ export async function deleteAccountAction(confirm: string): Promise<ActionResult
     (await cookies()).delete(DEV_COOKIE);
     return { ok: true };
   }
-  if (!e.SUPABASE_SECRET_KEY || !e.NEXT_PUBLIC_SUPABASE_URL) return failure("Account deletion isn't configured on the server.");
-  // Deleting the auth user cascades to profiles and every user-owned table.
-  const admin = createClient(e.NEXT_PUBLIC_SUPABASE_URL, e.SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error } = await admin.auth.admin.deleteUser(user.id);
-  if (error) return failure("Couldn't delete the account. Try again.");
+  // Deleting the auth user cascades to profiles and every user-owned table, and to the user's
+  // auth sessions and refresh tokens, so other signed-in devices are signed out too.
+  try {
+    await withService((tx) => tx`delete from auth.users where id = ${user.id}`);
+  } catch (err) {
+    console.error("deleteAccount failed", err);
+    return failure("Couldn't delete the account. Try again.");
+  }
   const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
   return { ok: true };
 }

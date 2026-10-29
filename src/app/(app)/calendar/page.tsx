@@ -119,7 +119,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   aria-current={isToday ? "date" : undefined}
                   className={`flex h-full flex-col gap-1 p-1 sm:p-2 ${isSel ? "bg-lime/10 ring-2 ring-lime ring-inset" : "hover:bg-ivory/5"}`}
                 >
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm tabular ${isToday ? "bg-lime font-bold text-ink" : inMonth ? "" : "text-muted/60"}`}>
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm tabular ${isToday ? "bg-lime font-bold text-ink" : inMonth ? "" : "text-muted"}`}>
                     {parseLocalDate(d).d}
                   </span>
                   <span className="flex flex-wrap gap-1 sm:hidden">

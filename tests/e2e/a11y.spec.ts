@@ -1,13 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { addBill, db, signInOnboarded, torontoToday, uniqueEmail } from "./helpers";
+import { addBill, signInOnboarded, torontoToday, uniqueEmail } from "./helpers";
 
 // @axe-core/playwright bundles its own playwright-core types; the runtime objects are identical.
 const axe = (page: Page) => new AxeBuilder({ page: page as unknown as ConstructorParameters<typeof AxeBuilder>[0]["page"] }).withTags(["wcag2a", "wcag2aa"]);
-
-test.afterAll(async () => {
-  await db.end();
-});
 
 test("main screens have no serious accessibility violations", async ({ page }) => {
   await page.goto("/sign-in");

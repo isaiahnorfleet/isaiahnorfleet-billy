@@ -9,6 +9,8 @@ psql "$ADMIN_URL" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$DB\" with
 DB_URL="${ADMIN_URL%/*}/$DB"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/local-stubs.sql
 for f in supabase/migrations/*.sql; do
+  # pg_cron/pg_net/Vault exist only on Supabase; local runs call the cron endpoint directly.
+  case "$f" in *_scheduler.sql) continue ;; esac
   psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
 done
 echo "Local database $DB ready: $DB_URL"

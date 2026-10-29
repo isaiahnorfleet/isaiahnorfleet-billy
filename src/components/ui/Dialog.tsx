@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 /**
@@ -9,18 +9,25 @@ import { X } from "lucide-react";
  */
 export function Dialog({ open, onClose, title, children, labelledBy }: { open: boolean; onClose: () => void; title: string; children: ReactNode; labelledBy?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const openRef = useRef(open);
   useEffect(() => {
+    openRef.current = open;
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
   }, [open]);
-  const id = labelledBy ?? `dlg-${title.replace(/\W+/g, "-").toLowerCase()}`;
+  const autoId = useId();
+  const id = labelledBy ?? `dlg-${autoId}`;
   return (
     <dialog
       ref={ref}
       aria-labelledby={id}
-      onClose={onClose}
+      // The native close event also fires when we close the dialog ourselves (e.g. switching
+      // from a menu to another dialog); only report closes the user started.
+      onClose={() => {
+        if (openRef.current) onClose();
+      }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
