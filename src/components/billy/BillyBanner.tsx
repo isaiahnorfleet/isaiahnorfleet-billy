@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { BillyMessage } from "@/lib/domain/billy-messages";
-import { BillyMascot } from "./BillyMascot";
+import { AnimatedBilly } from "./AnimatedBilly";
 
 export function BillyBanner({ message, cta }: { message: BillyMessage; cta?: { href: string; label: string } }) {
   return (
@@ -19,8 +19,12 @@ export function BillyBanner({ message, cta }: { message: BillyMessage; cta?: { h
           )}
         </div>
         <div className="-mr-2 shrink-0 [--billy-ink:#1b2612]">
-          <BillyMascot mood={message.mood} size={110} className="sm:hidden" />
-          <BillyMascot mood={message.mood} size={170} className="hidden sm:block" />
+          <div className="sm:hidden">
+            <AnimatedBilly mood={message.mood} animation={message.animation} size={110} />
+          </div>
+          <div className="hidden sm:block">
+            <AnimatedBilly mood={message.mood} animation={message.animation} size={170} />
+          </div>
         </div>
       </div>
     </section>

@@ -1,3 +1,4 @@
+import { billyAnimation, type BillyAnimation } from "./billy-animation";
 import { diffDays, type LocalDate } from "./dates";
 
 /**
@@ -113,10 +114,11 @@ export interface BillyMessage {
   mood: Mood;
   headline: string;
   body: string;
+  /** Which animated clip plays with the message. */
+  animation?: BillyAnimation;
 }
 
-/** Billy's most relevant message for the dashboard, from real occurrence data. */
-export function dashboardMessage(input: {
+type DashboardInput = {
   tone: Tone;
   today: LocalDate;
   hasBills: boolean;
@@ -125,7 +127,15 @@ export function dashboardMessage(input: {
   upcoming: BillyFocusItem[];
   justPaidName?: string | null;
   firstName?: string;
-}): BillyMessage {
+};
+
+/** Billy's most relevant message for the dashboard, from real occurrence data. */
+export function dashboardMessage(input: DashboardInput): BillyMessage {
+  const message = pickDashboardMessage(input);
+  return { ...message, animation: billyAnimation(message.mood, input.tone, input.today) };
+}
+
+function pickDashboardMessage(input: DashboardInput): BillyMessage {
   const { tone, today } = input;
   const firstName = input.firstName ?? "";
   const seed = today;
