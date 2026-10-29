@@ -16,6 +16,7 @@ function createClient(): Sql {
     prepare: !pooled,
     idle_timeout: 20,
     connect_timeout: 10,
+    onnotice: () => {},
     types: {
       // Dates stay as 'YYYY-MM-DD' strings so they are never shifted by a UTC conversion.
       date: { to: 1082, from: [1082], serialize: (x: string) => x, parse: (x: string) => x },
