@@ -3,7 +3,7 @@ import type { LocalDate } from "@/lib/domain/dates";
 import { endOfMonth } from "@/lib/domain/dates";
 import { occurrencesBetween, type Recurrence } from "@/lib/domain/recurrence";
 import type { BudgetBillInput } from "@/lib/domain/budget";
-import type { CategoryInput, ExpenseInput, IncomeInput } from "@/lib/validation";
+import type { CategoryInput, ExpenseInput, GoalInput, IncomeInput } from "@/lib/validation";
 
 export interface IncomeSourceRow {
   id: string;
@@ -157,4 +157,73 @@ export async function updateExpense(tx: Tx, userId: string, id: string, input: E
 export async function deleteExpense(tx: Tx, userId: string, id: string): Promise<boolean> {
   const res = await tx`delete from expenses where id = ${id} and user_id = ${userId}`;
   return res.count > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Planning: goals (money set aside) and auto limits
+// ---------------------------------------------------------------------------
+
+export interface BudgetGoalRow {
+  id: string;
+  name: string;
+  amount_minor: number | null;
+  percent_bp: number | null;
+  target_minor: number | null;
+  balance_minor: number;
+  annual_return_bp: number;
+}
+
+export const GOAL_PRESETS = ["Savings", "Investing", "Emergency fund", "Debt payoff"];
+
+export async function listGoals(tx: Tx, userId: string): Promise<BudgetGoalRow[]> {
+  return tx<BudgetGoalRow[]>`
+    select id, name, amount_minor, percent_bp, target_minor, balance_minor, annual_return_bp from budget_goals
+    where user_id = ${userId} order by sort_order, created_at`;
+}
+
+/** Returns false when another goal already has that name. */
+export async function saveGoal(tx: Tx, userId: string, id: string | null, input: GoalInput): Promise<boolean> {
+  const dupe = await tx`
+    select 1 from budget_goals
+    where user_id = ${userId} and lower(btrim(name)) = lower(btrim(${input.name})) and (${id}::uuid is null or id <> ${id}::uuid)`;
+  if (dupe.length > 0) return false;
+  if (id) {
+    const res = await tx`
+      update budget_goals set name = ${input.name}, amount_minor = ${input.amount_minor}, percent_bp = ${input.percent_bp},
+        target_minor = ${input.target_minor}, balance_minor = ${input.balance_minor}, annual_return_bp = ${input.annual_return_bp}
+      where id = ${id} and user_id = ${userId}`;
+    if (res.count === 0) throw new Error("Goal not found");
+    return true;
+  }
+  await tx`
+    insert into budget_goals (user_id, name, amount_minor, percent_bp, target_minor, balance_minor, annual_return_bp, sort_order)
+    values (${userId}, ${input.name}, ${input.amount_minor}, ${input.percent_bp}, ${input.target_minor}, ${input.balance_minor}, ${input.annual_return_bp},
+            coalesce((select max(sort_order) + 1 from budget_goals where user_id = ${userId}), 0))`;
+  return true;
+}
+
+export async function deleteGoal(tx: Tx, userId: string, id: string): Promise<boolean> {
+  const res = await tx`delete from budget_goals where id = ${id} and user_id = ${userId}`;
+  return res.count > 0;
+}
+
+export async function getAutoLimits(tx: Tx, userId: string): Promise<boolean> {
+  const [row] = await tx<{ auto_limits: boolean }[]>`select auto_limits from budget_settings where user_id = ${userId}`;
+  return row?.auto_limits ?? false;
+}
+
+export async function setAutoLimits(tx: Tx, userId: string, on: boolean): Promise<void> {
+  await tx`
+    insert into budget_settings (user_id, auto_limits) values (${userId}, ${on})
+    on conflict (user_id) do update set auto_limits = excluded.auto_limits`;
+}
+
+/** Spending per category over the three months before `month`, in one currency. */
+export async function categoryHistory(tx: Tx, userId: string, month: LocalDate, currency: string): Promise<Map<string, number>> {
+  const rows = await tx<{ category_id: string; total: number }[]>`
+    select category_id, sum(amount_minor)::bigint as total from expenses
+    where user_id = ${userId} and category_id is not null and currency = ${currency}
+      and spent_on >= (${month}::date - interval '3 months')::date and spent_on < ${month}::date
+    group by category_id`;
+  return new Map(rows.map((r) => [r.category_id, r.total]));
 }

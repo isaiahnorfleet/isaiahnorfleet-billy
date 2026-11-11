@@ -29,6 +29,16 @@ const LIBRARY: Record<BudgetState, Entry> = {
     },
     animation: { gentle: "idle", straight: "idle", extra: "idle" },
   },
+  goals_squeezed: {
+    mood: "heads_up",
+    headline: { gentle: "Your goals are a bit short.", straight: "Goals are getting squeezed.", extra: "Hands off the savings." },
+    body: {
+      gentle: [(v) => `You're still within your income, but your savings goals are ${v.left} short this month. Easing off a little would cover it.`],
+      straight: [(v) => `You haven't run out, but spending has eaten ${v.left} of what you meant to set aside. Pull back to protect it.`],
+      extra: [(v) => `That's ${v.left} taken from your goals. Future you wanted that money. Stop spending it.`],
+    },
+    animation: { gentle: "heads-up", straight: "heads-up", extra: "about-to-snap" },
+  },
   over: {
     mood: "overdue",
     headline: { gentle: "We went a little over.", straight: "That's over budget.", extra: "WE ARE OVER." },
@@ -83,9 +93,9 @@ const LIBRARY: Record<BudgetState, Entry> = {
     mood: "neutral",
     headline: { gentle: "Planning ahead.", straight: "Looking ahead.", extra: "Future month." },
     body: {
-      gentle: [(v) => `After bills, this month should leave about ${v.left} for everything else.`],
-      straight: [(v) => `Once the bills land, you'll have about ${v.left} for everything else.`],
-      extra: [(v) => `${v.left} after bills. Plan it now so it doesn't vanish later.`],
+      gentle: [(v) => `After bills and goals, this month should leave about ${v.left} to spend.`],
+      straight: [(v) => `After bills and goals, you'll have about ${v.left} to spend.`],
+      extra: [(v) => `${v.left} to spend after bills and goals. Plan it now so it doesn't vanish later.`],
     },
     animation: { gentle: "idle", straight: "idle", extra: "idle" },
   },

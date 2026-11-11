@@ -10,6 +10,10 @@ import {
   listBillsForMonth,
   listCategories,
   listExpenses,
+  getAutoLimits,
+  listGoals,
+  saveGoal,
+  setAutoLimits,
   saveCategory,
   saveIncomeSource,
   STARTER_CATEGORIES,
@@ -77,5 +81,29 @@ describe("budget data", () => {
       const may = await listBillsForMonth(tx, alice.id, "2027-05-01");
       expect(may.map((b) => b.due_date).sort()).toEqual(["2027-05-01", "2027-05-15"]);
     });
+  });
+
+  it("keeps goals and the auto-limit setting private, with projection fields", async () => {
+    await withUser(alice.id, async (tx) => {
+      const goal = { name: "Savings", amount_minor: null, percent_bp: 1000, target_minor: 1000000, balance_minor: 25000, annual_return_bp: 0 };
+      expect(await saveGoal(tx, alice.id, null, goal)).toBe(true);
+      expect(await saveGoal(tx, alice.id, null, { ...goal, name: "savings" })).toBe(false);
+      expect(await getAutoLimits(tx, alice.id)).toBe(false);
+      await setAutoLimits(tx, alice.id, true);
+      await setAutoLimits(tx, alice.id, true); // upsert
+      expect(await getAutoLimits(tx, alice.id)).toBe(true);
+      expect(await listGoals(tx, alice.id)).toEqual([expect.objectContaining({ name: "Savings", percent_bp: 1000, target_minor: 1000000, balance_minor: 25000 })]);
+    });
+    await withUser(bob.id, async (tx) => {
+      expect(await tx`select * from budget_goals`).toHaveLength(0);
+      expect(await tx`select * from budget_settings`).toHaveLength(0);
+      expect(await getAutoLimits(tx, alice.id)).toBe(false);
+    });
+  });
+
+  it("refuses a goal that is both a fixed amount and a percentage", async () => {
+    await expect(
+      withUser(alice.id, (tx) => tx`insert into budget_goals (user_id, name, amount_minor, percent_bp) values (${alice.id}, 'Both', 100, 100)`),
+    ).rejects.toThrow(/check constraint/);
   });
 });

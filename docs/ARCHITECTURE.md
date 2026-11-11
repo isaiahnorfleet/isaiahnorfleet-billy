@@ -76,6 +76,18 @@ date), `budget_categories` (name + optional monthly limit; null = track only) an
   of the calendar, on track, month closed under, future month) and `budget-messages.ts`.
 - No bank connections: everything is entered by hand.
 
+Planning (`budget_goals`, `budget_settings`, `src/lib/domain/projection.ts`):
+
+- Goals (Savings, Investing, Emergency fund, Debt payoff, or custom) set money aside before spending:
+  a fixed amount or a % of the month's income. **Spending money = income - bills - goals**, and
+  left to spend is spending money minus logged spending.
+- "Let Billy set my category limits" (auto limits): categories with a typed-in limit keep it; the
+  rest of the spending money is split across the others by what was spent in each over the last
+  three months (with a floor), or by starter weights when there's no history. Whole dollars.
+- Projections: optional target, amount already saved and expected yearly return. Monthly
+  contribution added at month end, growth compounded monthly; % goals use the next 12 months'
+  average income. Shows the month a target is reached and 1/5/10-year values. Estimates only.
+
 ## Reminder engine (`src/lib/reminders/engine.ts`)
 
 Each run (every 5 minutes):
