@@ -76,6 +76,11 @@ test("budget plan: goals come out first, Billy sets limits, and goals show a pro
   const proj = page.getByTestId("goal-projection").filter({ hasText: "Savings" });
   await expect(proj).toContainText("you'll reach $1,000.00 by");
   await expect(proj.getByRole("img")).toBeVisible();
+  // Look further ahead.
+  await proj.getByRole("button", { name: "40y" }).click();
+  await expect(proj.getByTestId("goal-milestones")).toContainText("In 40 years");
+  await page.reload();
+  await expect(page.getByTestId("goal-projection").filter({ hasText: "Savings" }).getByRole("button", { name: "40y" })).toHaveAttribute("aria-pressed", "true");
 
   // Let Billy set limits across the starter categories.
   await page.getByRole("button", { name: "Use starter categories" }).click();

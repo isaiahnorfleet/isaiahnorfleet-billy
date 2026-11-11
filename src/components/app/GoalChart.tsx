@@ -41,7 +41,7 @@ export function GoalChart({ name, points, target, reachIndex, currency }: { name
   const showContrib = points.some((p) => p.value_minor !== p.contributed_minor);
   const ticks = [0, 0.5, 1].map((f) => yMax * f);
   // Year ticks along the bottom: about four, on January or every N years.
-  const years = Math.max(1, Math.ceil(n / 12 / 4));
+  const years = [1, 2, 5, 10].find((step) => n / 12 / step <= 5) ?? 10;
   const xTicks = points.filter((p) => p.index > 0 && p.index % (12 * years) === 0);
   const h = hover !== null ? points[hover] : null;
 
@@ -96,7 +96,7 @@ export function GoalChart({ name, points, target, reachIndex, currency }: { name
             </g>
           ))}
           {xTicks.map((p) => (
-            <text key={p.index} x={x(p.index)} y={H - 8} textAnchor="middle" fontSize="12" fill="var(--color-muted)">
+            <text key={p.index} x={x(p.index)} y={H - 8} textAnchor={p.index === n ? "end" : "middle"} fontSize="12" fill="var(--color-muted)">
               {formatDateLabel(p.month, { month: "short", year: "numeric" })}
             </text>
           ))}

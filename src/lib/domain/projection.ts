@@ -20,11 +20,26 @@ export interface ProjectionPoint {
 
 export interface Projection {
   monthly_minor: number;
+  /** Month-by-month values from now out to MAX_PROJECTION_MONTHS. */
   points: ProjectionPoint[];
   /** Month the target is first reached, or null (no target, or out of reach within the cap). */
   reach: ProjectionPoint | null;
-  /** Value after 1, 5 and 10 years. */
-  milestones: { years: number; value_minor: number; contributed_minor: number }[];
+  /** The chart length shown first: long enough to see the target, otherwise 10 years. */
+  defaultYears: Horizon;
+}
+
+/** Projection lengths the user can pick, in years. */
+export const HORIZONS = [5, 10, 20, 30, 40, 50] as const;
+export type Horizon = (typeof HORIZONS)[number];
+
+/** Three checkpoints to show for a projection length, ending at it. */
+export function milestoneYears(horizon: Horizon): [number, number, number] {
+  const map: Record<Horizon, [number, number, number]> = { 5: [1, 3, 5], 10: [1, 5, 10], 20: [5, 10, 20], 30: [10, 20, 30], 40: [10, 20, 40], 50: [10, 25, 50] };
+  return map[horizon];
+}
+
+export function isHorizon(v: unknown): v is Horizon {
+  return HORIZONS.includes(v as Horizon);
 }
 
 export const MAX_PROJECTION_MONTHS = 600; // 50 years
@@ -56,19 +71,14 @@ export function projectGoal(input: {
   let contributed = input.balance_minor;
   const all: ProjectionPoint[] = [{ month: input.startMonth, index: 0, value_minor: Math.round(value), contributed_minor: contributed }];
   let reach: ProjectionPoint | null = input.target_minor !== null && value >= input.target_minor ? all[0] : null;
-  // Run long enough for the 10-year milestone and to find the target, within the cap.
-  const growing = input.monthly_minor > 0 || (r > 0 && value > 0);
-  const limit = growing ? MAX_PROJECTION_MONTHS : 120;
-  for (let i = 1; i <= limit; i++) {
+  for (let i = 1; i <= MAX_PROJECTION_MONTHS; i++) {
     value = step(value);
     contributed += input.monthly_minor;
     const p = { month: shiftMonth(input.startMonth, i), index: i, value_minor: Math.round(value), contributed_minor: contributed };
     all.push(p);
     if (!reach && input.target_minor !== null && value >= input.target_minor) reach = p;
-    if (i >= 120 && (reach || input.target_minor === null)) break;
   }
-  const milestones = [1, 5, 10].map((y) => ({ years: y, value_minor: all[y * 12].value_minor, contributed_minor: all[y * 12].contributed_minor }));
-  // Chart span: to the target (plus a little), else 5 years. At least a year either way.
-  const span = reach ? Math.max(12, Math.min(all.length - 1, Math.ceil(reach.index * 1.15))) : 60;
-  return { monthly_minor: input.monthly_minor, points: all.slice(0, span + 1), reach, milestones };
+  const reachYears = reach ? Math.ceil((reach.index * 1.1) / 12) : 0;
+  const defaultYears: Horizon = reach ? (HORIZONS.find((h) => h >= Math.max(5, reachYears)) ?? 50) : 10;
+  return { monthly_minor: input.monthly_minor, points: all, reach, defaultYears };
 }
