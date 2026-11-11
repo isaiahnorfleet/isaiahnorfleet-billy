@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { setPasswordAction } from "@/app/actions/auth";
 import { deleteAccountAction, removePushSubscriptionAction, savePreferencesAction, saveProfileAction, scheduleTestReminderAction, sendTestNowAction } from "@/app/actions/settings";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -276,5 +277,45 @@ export function DeleteAccount() {
         </form>
       </Dialog>
     </>
+  );
+}
+
+/** Set or change the password used by "Sign in with a password". */
+export function PasswordForm() {
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [state, setState] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setState(null);
+        start(async () => {
+          const res = await setPasswordAction(pw, confirm);
+          setState(res.ok ? { ok: true } : { ok: false, error: res.error });
+          if (res.ok) {
+            setPw("");
+            setConfirm("");
+          }
+        });
+      }}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="New password" htmlFor="new-password" hint="At least 8 characters.">
+          <Input id="new-password" type="password" autoComplete="new-password" maxLength={72} required value={pw} onChange={(e) => setPw(e.target.value)} />
+        </Field>
+        <Field label="Type it again" htmlFor="confirm-password">
+          <Input id="confirm-password" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </Field>
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save password"}
+        </Button>
+        <Saved state={state} />
+      </div>
+    </form>
   );
 }

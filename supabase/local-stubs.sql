@@ -12,6 +12,8 @@ create table if not exists auth.users (
   email text unique,
   created_at timestamptz not null default now()
 );
+-- Hosted Supabase stores a bcrypt hash here; local dev mode checks passwords against it the same way.
+alter table auth.users add column if not exists encrypted_password text;
 create or replace function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub', '')::uuid
 $$;
