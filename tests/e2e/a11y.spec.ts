@@ -11,7 +11,7 @@ test("main screens have no serious accessibility violations", async ({ page }) =
   expect(results.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   await signInOnboarded(page, uniqueEmail("a11y"));
   await addBill(page, { name: "Rent", amount: "1450", due: torontoToday(-2) });
-  for (const path of ["/", "/bills", "/bills/new", "/calendar", "/history", "/settings"]) {
+  for (const path of ["/", "/bills", "/bills/new", "/budget", "/calendar", "/history", "/settings"]) {
     await page.goto(path);
     results = await axe(page).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

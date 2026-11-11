@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Clock3, FileText, Home, Settings } from "lucide-react";
+import { CalendarDays, Clock3, FileText, Home, Settings, Wallet } from "lucide-react";
 
-export const NAV = [
-  { href: "/", label: "Overview", short: "Overview", icon: Home },
-  { href: "/bills", label: "My bills", short: "Bills", icon: FileText },
-  { href: "/calendar", label: "Calendar", short: "Calendar", icon: CalendarDays },
-  { href: "/history", label: "Payment history", short: "History", icon: Clock3 },
+// On phones, Settings lives behind the profile button in the header, so the bottom bar keeps five tabs.
+export const NAV: { href: string; label: string; short: string; icon: typeof Home; mobile?: boolean }[] = [
+  { href: "/", label: "Overview", short: "Overview", icon: Home, mobile: true },
+  { href: "/bills", label: "My bills", short: "Bills", icon: FileText, mobile: true },
+  { href: "/budget", label: "Budget", short: "Budget", icon: Wallet, mobile: true },
+  { href: "/calendar", label: "Calendar", short: "Calendar", icon: CalendarDays, mobile: true },
+  { href: "/history", label: "Payment history", short: "History", icon: Clock3, mobile: true },
   { href: "/settings", label: "Settings", short: "Settings", icon: Settings },
 ];
 
@@ -43,7 +45,7 @@ export function BottomNav() {
   return (
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden">
       <ul className="mx-auto grid max-w-lg grid-cols-5">
-        {NAV.map(({ href, short, icon: Icon }) => {
+        {NAV.filter((n) => n.mobile).map(({ href, short, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
             <li key={href}>
