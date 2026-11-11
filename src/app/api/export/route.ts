@@ -27,6 +27,8 @@ export async function GET(req: Request) {
     income_sources: await tx`select name, amount_minor, currency, recurrence, anchor_date, created_at from income_sources order by created_at`,
     budget_categories: await tx`select id, name, monthly_limit_minor, created_at from budget_categories order by sort_order, name`,
     expenses: await tx`select e.spent_on, e.amount_minor, e.currency, c.name as category, e.note, e.created_at from expenses e left join budget_categories c on c.id = e.category_id order by e.spent_on`,
+    budget_goals: await tx`select name, amount_minor, percent_bp, created_at from budget_goals order by sort_order, created_at`,
+    budget_settings: (await tx`select auto_limits from budget_settings`)[0] ?? null,
     devices: await tx`select device_label, created_at, last_success_at, disabled_at from push_subscriptions`,
   }));
   const stamp = new Date().toISOString().slice(0, 10);

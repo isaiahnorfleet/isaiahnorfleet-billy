@@ -6,11 +6,14 @@ import { Plus } from "lucide-react";
 import {
   addStarterCategoriesAction,
   deleteCategoryAction,
+  deleteGoalAction,
   deleteExpenseAction,
   deleteIncomeAction,
   saveCategoryAction,
   saveExpenseAction,
+  saveGoalAction,
   saveIncomeAction,
+  setAutoLimitsAction,
 } from "@/app/actions/budget";
 import type { ActionResult } from "@/app/actions/result";
 import { Button } from "@/components/ui/Button";
@@ -221,7 +224,19 @@ export function ExpenseItem({ expense, categoryName, categories, today, currency
 // Categories
 // ---------------------------------------------------------------------------
 
-export function CategoryButton({ category, currency, children, className = "" }: { category?: { id: string; name: string; limit_minor: number | null }; currency: string; children: ReactNode; className?: string }) {
+export function CategoryButton({
+  category,
+  currency,
+  autoLimits = false,
+  children,
+  className = "",
+}: {
+  category?: { id: string; name: string; limit_minor: number | null };
+  currency: string;
+  autoLimits?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category?.name ?? "");
   const [limit, setLimit] = useState(category?.limit_minor != null ? minorToInput(category.limit_minor, currency) : "");
@@ -249,7 +264,7 @@ export function CategoryButton({ category, currency, children, className = "" }:
           <Field label="Name" htmlFor={`cat-name-${idp}`} error={errors.name}>
             <Input id={`cat-name-${idp}`} value={name} maxLength={40} placeholder="e.g. Groceries" onChange={(e) => setName(e.target.value)} invalid={!!errors.name} />
           </Field>
-          <Field label="Monthly limit" htmlFor={`cat-limit-${idp}`} error={errors.limit} hint="Leave blank to just track what you spend.">
+          <Field label="Monthly limit" htmlFor={`cat-limit-${idp}`} error={errors.limit} hint={autoLimits ? "Leave blank and Billy sets it each month. Enter an amount to fix it yourself." : "Leave blank to just track what you spend."}>
             <Input id={`cat-limit-${idp}`} inputMode="decimal" value={limit} placeholder="e.g. 400" onChange={(e) => setLimit(e.target.value)} invalid={!!errors.limit} className="tabular" />
           </Field>
           <Button type="submit" size="lg" className="w-full" disabled={pending}>
@@ -349,3 +364,143 @@ export function IncomeButton({ income, currency, today, children, className = ""
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// Plan: goals and auto limits
+// ---------------------------------------------------------------------------
+
+export interface GoalValue {
+  id: string;
+  name: string;
+  amount_minor: number | null;
+  percent_bp: number | null;
+  target_minor: number | null;
+  balance_minor: number;
+  annual_return_bp: number;
+}
+
+const INVESTING = /invest|rrsp|tfsa|fhsa|resp|stock|etf|retire/i;
+
+export function GoalButton({ goal, presetName, currency, children, className = "" }: { goal?: GoalValue; presetName?: string; currency: string; children: ReactNode; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(goal?.name ?? presetName ?? "");
+  const [mode, setMode] = useState<"amount" | "percent">(goal ? (goal.percent_bp !== null ? "percent" : "amount") : "percent");
+  const [value, setValue] = useState(
+    goal ? (goal.percent_bp !== null ? String(goal.percent_bp / 100) : minorToInput(goal.amount_minor ?? 0, currency)) : "",
+  );
+  const [target, setTarget] = useState(goal?.target_minor ? minorToInput(goal.target_minor, currency) : "");
+  const [balance, setBalance] = useState(goal?.balance_minor ? minorToInput(goal.balance_minor, currency) : "");
+  const [ret, setRet] = useState(goal ? (goal.annual_return_bp ? String(goal.annual_return_bp / 100) : "") : presetName && INVESTING.test(presetName) ? "5" : "");
+  const [more, setMore] = useState(!!goal && (goal.target_minor !== null || goal.balance_minor > 0 || goal.annual_return_bp > 0));
+  const { pending, errors, run } = useSubmit();
+  const idp = goal?.id ?? `new-${presetName ?? "custom"}`;
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={className}>
+        {children}
+      </button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={goal ? `Edit ${goal.name}` : presetName ? `Add ${presetName.toLowerCase()}` : "Add a goal"}>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run(() => saveGoalAction({ id: goal?.id, name, mode, value, target, balance, annual_return: ret }), goal ? "Goal updated" : "Goal added", () => {
+              if (!goal) setValue("");
+              setOpen(false);
+            });
+          }}
+        >
+          <Field label="Name" htmlFor={`goal-name-${idp}`} error={errors.name}>
+            <Input id={`goal-name-${idp}`} value={name} maxLength={40} placeholder="e.g. Vacation fund" onChange={(e) => setName(e.target.value)} invalid={!!errors.name} />
+          </Field>
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-semibold">How much each month</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(["percent", "amount"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  onClick={() => setMode(m)}
+                  className={`min-h-11 rounded-[var(--radius-control)] border text-sm font-semibold ${mode === m ? "border-lime bg-lime text-ink" : "border-line text-ivory hover:bg-ivory/5"}`}
+                >
+                  {m === "percent" ? "% of income" : "Fixed amount"}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <Field
+            label={mode === "percent" ? "Percent of income" : "Amount per month"}
+            htmlFor={`goal-value-${idp}`}
+            error={errors.value}
+            hint={mode === "percent" ? "Grows with months that have an extra payday." : undefined}
+          >
+            <Input
+              id={`goal-value-${idp}`}
+              inputMode="decimal"
+              value={value}
+              placeholder={mode === "percent" ? "e.g. 10" : "e.g. 200"}
+              onChange={(e) => setValue(e.target.value)}
+              invalid={!!errors.value}
+              className="tabular"
+            />
+          </Field>
+          {more || errors.target || errors.balance || errors.annual_return ? (
+            <div className="space-y-4 rounded-[var(--radius-control)] border border-line p-3.5">
+              <p className="text-sm text-muted">For the projection chart. All optional.</p>
+              <Field label="Target" htmlFor={`goal-target-${idp}`} error={errors.target} hint="What you're aiming for, like 10000.">
+                <Input id={`goal-target-${idp}`} inputMode="decimal" value={target} placeholder="e.g. 10000" onChange={(e) => setTarget(e.target.value)} invalid={!!errors.target} className="tabular" />
+              </Field>
+              <Field label="Already saved" htmlFor={`goal-balance-${idp}`} error={errors.balance}>
+                <Input id={`goal-balance-${idp}`} inputMode="decimal" value={balance} placeholder="0" onChange={(e) => setBalance(e.target.value)} invalid={!!errors.balance} className="tabular" />
+              </Field>
+              <Field
+                label="Interest / return (% per year)"
+                htmlFor={`goal-return-${idp}`}
+                error={errors.annual_return}
+                hint="Compounded monthly. Use your savings account's rate (e.g. 3.5), or for investing a long-term guess like 5. Blank means 0%."
+              >
+                <Input id={`goal-return-${idp}`} inputMode="decimal" value={ret} placeholder="0" onChange={(e) => setRet(e.target.value)} invalid={!!errors.annual_return} className="tabular" />
+              </Field>
+            </div>
+          ) : (
+            <button type="button" className="text-sm font-semibold text-lime underline" onClick={() => setMore(true)}>
+              Add a target, interest, and see when you&apos;ll reach it
+            </button>
+          )}
+          <Button type="submit" size="lg" className="w-full" disabled={pending}>
+            {goal ? "Save changes" : "Add goal"}
+          </Button>
+          {goal && <ConfirmDelete label="Remove this goal" pending={pending} onConfirm={() => run(() => deleteGoalAction(goal.id), "Goal removed", () => setOpen(false))} />}
+        </form>
+      </Dialog>
+    </>
+  );
+}
+
+export function AutoLimitsToggle({ on }: { on: boolean }) {
+  const { pending, run } = useSubmit();
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-4">
+      <span>
+        <span className="block font-semibold">Let Billy set my category limits</span>
+        <span className="block text-sm text-muted">Each month, Billy splits your spending money across categories, based on what you usually spend. Limits you type in yourself stay fixed.</span>
+      </span>
+      <span className="relative mt-0.5 inline-flex shrink-0">
+        <input
+          type="checkbox"
+          className="peer sr-only"
+          checked={on}
+          disabled={pending}
+          onChange={(e) => {
+            const next = e.target.checked;
+            run(() => setAutoLimitsAction(next), next ? "Billy is planning your limits" : "Back to your own limits");
+          }}
+          data-testid="auto-limits"
+        />
+        <span className="h-7 w-12 rounded-full border border-line bg-bg transition-colors peer-checked:border-lime peer-checked:bg-lime peer-focus-visible:shadow-[var(--shadow-focus)] peer-disabled:opacity-50" />
+        <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-muted transition-transform peer-checked:translate-x-5 peer-checked:bg-ink" />
+      </span>
+    </label>
+  );
+}

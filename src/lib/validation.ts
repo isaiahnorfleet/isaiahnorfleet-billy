@@ -115,6 +115,60 @@ export const expenseInput = z
   });
 export type ExpenseInput = z.output<typeof expenseInput>;
 
+/** "10", "7.5", "4.25%" -> basis points (1000, 750, 425). */
+function parsePercentBp(value: string): number | null {
+  const m = /^\s*(\d{1,3})(?:\.(\d{1,2}))?\s*%?\s*$/.exec(value);
+  return m ? Number(m[1]) * 100 + Number((m[2] ?? "").padEnd(2, "0") || "0") : null;
+}
+
+export const goalInput = z
+  .object({
+    name: text(40).pipe(z.string().min(1, "Give the goal a name, like Savings")),
+    mode: z.enum(["amount", "percent"]),
+    value: z.string(),
+    target: z.string().optional(),
+    balance: z.string().optional(),
+    annual_return: z.string().optional(),
+    currency: currency.default("CAD"),
+  })
+  .transform((v, ctx) => {
+    let amount_minor: number | null = null;
+    let percent_bp: number | null = null;
+    if (v.mode === "percent") {
+      const bp = parsePercentBp(v.value);
+      if (bp === null || bp <= 0 || bp > 10000) {
+        ctx.addIssue({ code: "custom", path: ["value"], message: "Enter a percentage between 0.01 and 100, like 10" });
+        return z.NEVER;
+      }
+      percent_bp = bp;
+    } else {
+      amount_minor = withAmount({ amount: v.value, currency: v.currency }, ctx, "value");
+      if (amount_minor === null) return z.NEVER;
+    }
+    let target_minor: number | null = null;
+    if (v.target && v.target.trim() !== "") {
+      target_minor = withAmount({ amount: v.target, currency: v.currency }, ctx, "target");
+      if (target_minor === null) return z.NEVER;
+    }
+    let balance_minor = 0;
+    if (v.balance && v.balance.trim() !== "") {
+      const b = withAmount({ amount: v.balance, currency: v.currency }, ctx, "balance", true);
+      if (b === null) return z.NEVER;
+      balance_minor = b;
+    }
+    let annual_return_bp = 0;
+    if (v.annual_return && v.annual_return.trim() !== "") {
+      const r = parsePercentBp(v.annual_return);
+      if (r === null || r > 3000) {
+        ctx.addIssue({ code: "custom", path: ["annual_return"], message: "Enter a yearly return between 0 and 30, like 5" });
+        return z.NEVER;
+      }
+      annual_return_bp = r;
+    }
+    return { name: v.name, amount_minor, percent_bp, target_minor, balance_minor, annual_return_bp };
+  });
+export type GoalInput = z.output<typeof goalInput>;
+
 export const paymentInput = z.object({
   occurrence_id: z.string().uuid(),
   amount: z.string(),

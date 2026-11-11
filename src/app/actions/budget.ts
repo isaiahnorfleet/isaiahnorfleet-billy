@@ -8,13 +8,16 @@ import {
   addStarterCategories,
   deleteCategory,
   deleteExpense,
+  deleteGoal,
   deleteIncomeSource,
+  saveGoal,
+  setAutoLimits,
   saveCategory,
   saveIncomeSource,
   updateExpense,
 } from "@/lib/data/budget";
 import { todayIn } from "@/lib/domain/dates";
-import { categoryInput, expenseInput, fieldErrors, incomeInput } from "@/lib/validation";
+import { categoryInput, expenseInput, fieldErrors, goalInput, incomeInput } from "@/lib/validation";
 import { failure, type ActionResult } from "./result";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -112,5 +115,48 @@ export async function deleteExpenseAction(id: string): Promise<ActionResult> {
     return done();
   } catch {
     return failure("Couldn't remove the entry. Try again.");
+  }
+}
+
+export async function saveGoalAction(input: {
+  id?: string | null;
+  name: string;
+  mode: "amount" | "percent";
+  value: string;
+  target: string;
+  balance: string;
+  annual_return: string;
+}): Promise<ActionResult> {
+  try {
+    const { user, profile } = await requireUserForAction();
+    const parsed = goalInput.safeParse({ ...input, currency: profile.currency });
+    if (!parsed.success) return failure("Please fix the highlighted fields.", fieldErrors(parsed.error));
+    const ok = await withUser(user.id, (tx) => saveGoal(tx, user.id, optionalId(input.id), parsed.data));
+    if (!ok) return failure("You already have a goal with that name.", { name: "Pick a different name" });
+    return done();
+  } catch (err) {
+    console.error("saveGoal failed", (err as Error).message);
+    return failure("Couldn't save the goal. Try again.");
+  }
+}
+
+export async function deleteGoalAction(id: string): Promise<ActionResult> {
+  try {
+    const { user } = await requireUserForAction();
+    if (!UUID.test(id)) return failure("Goal not found.");
+    await withUser(user.id, (tx) => deleteGoal(tx, user.id, id));
+    return done();
+  } catch {
+    return failure("Couldn't remove the goal. Try again.");
+  }
+}
+
+export async function setAutoLimitsAction(on: boolean): Promise<ActionResult> {
+  try {
+    const { user } = await requireUserForAction();
+    await withUser(user.id, (tx) => setAutoLimits(tx, user.id, on === true));
+    return done();
+  } catch {
+    return failure("Couldn't change that setting. Try again.");
   }
 }
