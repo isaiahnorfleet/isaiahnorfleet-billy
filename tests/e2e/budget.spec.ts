@@ -68,7 +68,7 @@ test("budget plan: goals come out first, Billy sets limits, and goals show a pro
   await page.getByRole("button", { name: "Savings", exact: true }).click();
   const goal = page.getByRole("dialog", { name: "Add savings" });
   await goal.getByLabel("Percent of income").fill("10");
-  await goal.getByRole("button", { name: "Add a target and see when you'll reach it" }).click();
+  await goal.getByRole("button", { name: "Add a target, interest, and see when you'll reach it" }).click();
   await goal.getByLabel("Target").fill("1000");
   await goal.getByRole("button", { name: "Add goal" }).click();
   await expect(page.getByTestId("spending-money")).toHaveText("$2,700.00");

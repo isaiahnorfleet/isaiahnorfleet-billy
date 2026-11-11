@@ -244,7 +244,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
             ))}
           </div>
           <p className="mt-2 text-xs text-muted">
-            Projections assume you keep setting aside the same amount each month{goals.some((g) => g.annual_return_bp > 0) ? " and earn the yearly return you entered, which real markets don't promise" : ""}. % goals use your average monthly income over the next year.
+            Projections assume you keep setting aside the same amount each month{goals.some((g) => g.annual_return_bp > 0) ? " and earn the interest or return you entered, compounded monthly. Rates change and markets don't promise returns" : ""}. % goals use your average monthly income over the next year.
           </p>
         </section>
       )}
@@ -362,6 +362,10 @@ function GoalProjection({ name, target, balance, annualReturnBp, p, currency }: 
     headline = `At ${pace}, you'll reach ${money(target)} by ${formatDateLabel(p.reach.month, { month: "long", year: "numeric" })}, in ${duration(p.reach.index)}.`;
   else if (target !== null) headline = `At ${pace}, ${money(target)} is more than 50 years away. Raise the amount to get there sooner.`;
   else headline = `At ${pace}, you'll have about ${money(p.milestones[1].value_minor)} in 5 years.`;
+  // Interest earned by the point the headline talks about.
+  const at = target !== null && p.reach && p.reach.index > 0 ? p.reach : target === null ? p.milestones[1] : null;
+  const interest = at ? at.value_minor - at.contributed_minor : 0;
+  if (annualReturnBp > 0 && interest > 0) headline += ` ${money(interest)} of that is interest.`;
   return (
     <Card className="space-y-3 p-4 sm:p-5" data-testid="goal-projection">
       <div className="flex items-baseline justify-between gap-3">
@@ -388,6 +392,7 @@ function GoalProjection({ name, target, balance, annualReturnBp, p, currency }: 
           <div key={m.years}>
             <dt className="text-muted">In {m.years} {m.years === 1 ? "year" : "years"}</dt>
             <dd className="font-bold tabular">{money(m.value_minor)}</dd>
+            {annualReturnBp > 0 && m.value_minor > m.contributed_minor && <dd className="text-xs text-muted tabular">+{money(m.value_minor - m.contributed_minor)} interest</dd>}
           </div>
         ))}
       </dl>

@@ -455,17 +455,17 @@ export function GoalButton({ goal, presetName, currency, children, className = "
                 <Input id={`goal-balance-${idp}`} inputMode="decimal" value={balance} placeholder="0" onChange={(e) => setBalance(e.target.value)} invalid={!!errors.balance} className="tabular" />
               </Field>
               <Field
-                label="Expected yearly return (%)"
+                label="Interest / return (% per year)"
                 htmlFor={`goal-return-${idp}`}
                 error={errors.annual_return}
-                hint="Leave blank for a savings account at 0%. For investing, 4 to 7 is a common long-term guess, not a guarantee."
+                hint="Compounded monthly. Use your savings account's rate (e.g. 3.5), or for investing a long-term guess like 5. Blank means 0%."
               >
                 <Input id={`goal-return-${idp}`} inputMode="decimal" value={ret} placeholder="0" onChange={(e) => setRet(e.target.value)} invalid={!!errors.annual_return} className="tabular" />
               </Field>
             </div>
           ) : (
             <button type="button" className="text-sm font-semibold text-lime underline" onClick={() => setMore(true)}>
-              Add a target and see when you&apos;ll reach it
+              Add a target, interest, and see when you&apos;ll reach it
             </button>
           )}
           <Button type="submit" size="lg" className="w-full" disabled={pending}>

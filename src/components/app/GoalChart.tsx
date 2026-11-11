@@ -61,7 +61,7 @@ export function GoalChart({ name, points, target, reachIndex, currency }: { name
         </span>
         {showContrib && (
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-4 border-t-2 border-dashed border-muted" /> What you put in
+            <span className="w-4 border-t-2 border-dashed border-muted" /> What you put in (the gap is interest)
           </span>
         )}
         {target !== null && (
@@ -127,6 +127,7 @@ export function GoalChart({ name, points, target, reachIndex, currency }: { name
             <p className="font-semibold text-ivory">{h.index === 0 ? "Now" : formatDateLabel(h.month, { month: "short", year: "numeric" })}</p>
             <p className="tabular text-ivory">{formatMoney(h.value_minor, currency)}</p>
             {showContrib && <p className="tabular text-muted">{formatMoney(h.contributed_minor, currency)} put in</p>}
+            {showContrib && h.value_minor > h.contributed_minor && <p className="tabular text-lime">+{formatMoney(h.value_minor - h.contributed_minor, currency)} interest</p>}
           </div>
         )}
       </div>
