@@ -61,6 +61,60 @@ export const billInput = z
   });
 export type BillInput = z.output<typeof billInput>;
 
+/** Shared money parsing for budget forms. `allowZero` lets a category limit be $0. */
+function withAmount<T extends { amount: string; currency: string }>(v: T, ctx: z.RefinementCtx, field = "amount", allowZero = false) {
+  const minor = parseAmountToMinor(v.amount, v.currency);
+  if (minor === null || (!allowZero && minor === 0)) {
+    ctx.addIssue({ code: "custom", path: [field], message: allowZero ? "Enter an amount like 400" : "Enter an amount more than zero, like 24.50" });
+    return null;
+  }
+  return minor;
+}
+
+export const incomeInput = z
+  .object({
+    name: text(80).pipe(z.string().min(1, "Give it a name, like Paycheque")),
+    amount: z.string(),
+    currency: currency.default("CAD"),
+    recurrence: z.enum(RECURRENCES),
+    anchor_date: localDate,
+  })
+  .transform((v, ctx) => {
+    const amount_minor = withAmount(v, ctx);
+    if (amount_minor === null) return z.NEVER;
+    return { name: v.name, currency: v.currency, recurrence: v.recurrence, anchor_date: v.anchor_date, amount_minor };
+  });
+export type IncomeInput = z.output<typeof incomeInput>;
+
+export const categoryInput = z
+  .object({
+    name: text(40).pipe(z.string().min(1, "Give the category a name")),
+    limit: z.string().optional(),
+    currency: currency.default("CAD"),
+  })
+  .transform((v, ctx) => {
+    if (!v.limit || v.limit.trim() === "") return { name: v.name, limit_minor: null as number | null };
+    const limit_minor = withAmount({ amount: v.limit, currency: v.currency }, ctx, "limit", true);
+    if (limit_minor === null) return z.NEVER;
+    return { name: v.name, limit_minor: limit_minor as number | null };
+  });
+export type CategoryInput = z.output<typeof categoryInput>;
+
+export const expenseInput = z
+  .object({
+    amount: z.string(),
+    currency: currency.default("CAD"),
+    category_id: z.string().uuid().nullable().default(null),
+    spent_on: localDate,
+    note: optionalText(200),
+  })
+  .transform((v, ctx) => {
+    const amount_minor = withAmount(v, ctx);
+    if (amount_minor === null) return z.NEVER;
+    return { currency: v.currency, category_id: v.category_id, spent_on: v.spent_on, note: v.note, amount_minor };
+  });
+export type ExpenseInput = z.output<typeof expenseInput>;
+
 export const paymentInput = z.object({
   occurrence_id: z.string().uuid(),
   amount: z.string(),

@@ -58,6 +58,24 @@ Vercel: Next.js app ── server-only code ──► Supabase Postgres (RLS on 
 - Overdue occurrences stay overdue until paid or skipped. Paying one occurrence never changes the
   schedule or other occurrences. Editing a bill's schedule keeps paid and overdue history.
 
+## Budget (`/budget`, `src/lib/domain/budget.ts`)
+
+Three more user-owned tables, same RLS pattern: `income_sources` (amount + recurrence + a pay
+date), `budget_categories` (name + optional monthly limit; null = track only) and `expenses`
+(logged spending, optionally in a category; deleting a category keeps its spending as
+"Uncategorized").
+
+- For a calendar month: **left to spend = income - bills due - spending logged**.
+- Income pay dates run in both directions from the date given, so entering the next pay date still
+  counts earlier paydays in the month. Month-based schedules clamp to short months.
+- Bills come from `bill_occurrences` due in the month (paid ones at the amount actually paid,
+  skipped ones excluded) plus cycles projected from each active bill's schedule beyond the
+  materialized horizon.
+- Only the profile's currency is counted; other-currency rows are reported, not converted.
+- Billy's line and clip come from `budgetState` (no income, over, a category over, spending ahead
+  of the calendar, on track, month closed under, future month) and `budget-messages.ts`.
+- No bank connections: everything is entered by hand.
+
 ## Reminder engine (`src/lib/reminders/engine.ts`)
 
 Each run (every 5 minutes):
