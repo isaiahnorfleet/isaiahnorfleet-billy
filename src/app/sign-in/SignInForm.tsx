@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { sendCodeAction, verifyCodeAction } from "@/app/actions/auth";
+import { sendCodeAction, signInWithPasswordAction, verifyCodeAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 
 export function SignInForm({ devMode }: { devMode: boolean }) {
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -35,6 +36,40 @@ export function SignInForm({ devMode }: { devMode: boolean }) {
           {pending ? "Sending…" : "Email me a sign-in code"}
         </Button>
         <p className="text-sm text-muted">No password needed. We&apos;ll email you a one-time code.</p>
+        <button type="button" className="w-full text-sm text-muted underline" onClick={() => { setStep("password"); setError(null); }}>
+          Sign in with a password instead
+        </button>
+      </form>
+    );
+  }
+  if (step === "password") {
+    return (
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setError(null);
+          start(async () => {
+            const res = await signInWithPasswordAction(email, password);
+            if (res.ok) {
+              router.replace(res.next);
+              router.refresh();
+            } else setError(res.error);
+          });
+        }}
+      >
+        <Field label="Email" htmlFor="email">
+          <Input id="email" type="email" autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+        </Field>
+        <Field label="Password" htmlFor="password" error={error ?? undefined}>
+          <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} invalid={!!error} />
+        </Field>
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
+          {pending ? "Signing in…" : "Sign in"}
+        </Button>
+        <button type="button" className="w-full text-sm text-muted underline" onClick={() => { setStep("email"); setPassword(""); setError(null); }}>
+          Email me a code instead
+        </button>
       </form>
     );
   }

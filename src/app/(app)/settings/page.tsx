@@ -6,7 +6,7 @@ import { emailConfigured, env, pushConfigured } from "@/lib/env";
 import { pageContext } from "@/lib/server/context";
 import { timeZoneOptions } from "@/lib/timezones";
 import { PushSetup } from "@/components/app/PushSetup";
-import { DeleteAccount, PreferencesForm, ProfileForm, RemoveDeviceButton, TestButtons } from "@/components/app/SettingsForms";
+import { DeleteAccount, PasswordForm, PreferencesForm, ProfileForm, RemoveDeviceButton, TestButtons } from "@/components/app/SettingsForms";
 import { SignOutButton } from "@/components/app/SignOutButton";
 import { Card } from "@/components/ui/Card";
 
@@ -41,6 +41,12 @@ export default async function SettingsPage() {
         <h2 className="mb-1 text-xl font-bold">Profile</h2>
         <p className="mb-4 text-sm text-muted">Signed in as {ctx.user.email}</p>
         <ProfileForm name={ctx.profile.display_name} currency={ctx.profile.currency} timeZone={tz} tone={ctx.profile.tone} timeZones={timeZoneOptions(tz)} />
+      </Card>
+
+      <Card className="p-5 sm:p-6" id="password">
+        <h2 className="mb-1 text-xl font-bold">Password</h2>
+        <p className="mb-4 text-sm text-muted">Set a password to sign in without waiting for an email code. You can still use a code any time.</p>
+        <PasswordForm />
       </Card>
 
       <Card className="p-5 sm:p-6" id="notifications">
