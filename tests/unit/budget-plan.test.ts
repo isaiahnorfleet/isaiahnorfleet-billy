@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { budgetState, computeBudget, splitByWeight } from "@/lib/domain/budget";
-import { goalMonthlyContribution, projectGoal, typicalMonthlyIncome } from "@/lib/domain/projection";
+import { goalMonthlyContribution, milestoneYears, projectGoal, typicalMonthlyIncome } from "@/lib/domain/projection";
 
 const base = {
   month: "2026-11-01",
@@ -77,17 +77,32 @@ describe("goal projections", () => {
     const p = projectGoal({ startMonth: "2026-11-01", balance_minor: 100000, monthly_minor: 50000, annual_return_bp: 0, target_minor: 1000000 });
     // $1,000 now + $500/month reaches $10,000 after 18 months.
     expect(p.reach).toMatchObject({ index: 18, month: "2028-05-01", value_minor: 1000000 });
-    expect(p.milestones[0]).toMatchObject({ years: 1, value_minor: 700000, contributed_minor: 700000 });
+    expect(p.points[12]).toMatchObject({ value_minor: 700000, contributed_minor: 700000 });
+    expect(p.defaultYears).toBe(5);
   });
 
   it("compounds investment growth monthly", () => {
     const p = projectGoal({ startMonth: "2026-11-01", balance_minor: 0, monthly_minor: 10000, annual_return_bp: 600, target_minor: null });
-    const tenYears = p.milestones[2];
+    const tenYears = p.points[120];
     expect(tenYears.contributed_minor).toBe(1200000);
     // FV of $100/month at 6%/12 for 120 months ≈ $16,387.93
     expect(tenYears.value_minor).toBeGreaterThan(1638000);
     expect(tenYears.value_minor).toBeLessThan(1640000);
-    expect(p.points).toHaveLength(61); // no target: 5-year chart
+    expect(p.points).toHaveLength(601); // projected out to 50 years
+    expect(p.defaultYears).toBe(10);
+    // 40 years of $100/month at 6%: about $199,149
+    expect(p.points[480].value_minor).toBeGreaterThan(19900000);
+    expect(p.points[480].value_minor).toBeLessThan(19930000);
+  });
+
+  it("picks checkpoints that end at the chosen length", () => {
+    expect(milestoneYears(5)).toEqual([1, 3, 5]);
+    expect(milestoneYears(30)).toEqual([10, 20, 30]);
+    expect(milestoneYears(50)).toEqual([10, 25, 50]);
+    // A far-off target opens on a chart long enough to show it.
+    const far = projectGoal({ startMonth: "2026-11-01", balance_minor: 0, monthly_minor: 10000, annual_return_bp: 0, target_minor: 2500000 });
+    expect(far.reach?.index).toBe(250);
+    expect(far.defaultYears).toBe(30);
   });
 
   it("handles targets already reached or out of reach", () => {
