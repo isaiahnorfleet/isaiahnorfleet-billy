@@ -32,6 +32,10 @@ export default async function DashboardPage() {
           <h1 className="font-display text-3xl font-extrabold sm:text-5xl">Hey {firstName}.</h1>
           <p className="mt-1 text-muted sm:text-lg">A clear head starts with knowing what&apos;s due.</p>
         </div>
+        {/* The floating + is for spending; bills get their own button up here so the two never collide. */}
+        <LinkButton href="/bills/new" variant="secondary" size="sm" className="sm:hidden">
+          <Plus size={16} aria-hidden /> Add a bill
+        </LinkButton>
         <div className="hidden sm:block">
           <LinkButton href="/bills/new" size="lg">
             <Plus size={20} aria-hidden /> Add a bill
@@ -159,12 +163,6 @@ export default async function DashboardPage() {
           )}
         </section>
       )}
-
-      <div className="fixed right-4 bottom-[calc(5.25rem+var(--safe-bottom))] z-30 sm:hidden">
-        <LinkButton href="/bills/new" size="lg" className="shadow-xl">
-          <Plus size={20} aria-hidden /> Add a bill
-        </LinkButton>
-      </div>
     </div>
   );
 }

@@ -227,3 +227,43 @@ export async function categoryHistory(tx: Tx, userId: string, month: LocalDate, 
     group by category_id`;
   return new Map(rows.map((r) => [r.category_id, r.total]));
 }
+
+// ---------------------------------------------------------------------------
+// Quick add: what Billy needs to suggest categories, stores and amounts
+// ---------------------------------------------------------------------------
+
+export interface QuickAddPast {
+  category_id: string | null;
+  note: string | null;
+  amount_minor: number;
+  minute_of_day: number;
+}
+
+/** The user's recent entries (last 120 days, newest first), with the local time each was logged. */
+export async function listRecentForQuickAdd(tx: Tx, userId: string, timeZone: string, currency: string): Promise<QuickAddPast[]> {
+  return tx<QuickAddPast[]>`
+    select category_id, note, amount_minor,
+      (extract(hour from created_at at time zone ${timeZone}) * 60 + extract(minute from created_at at time zone ${timeZone}))::int as minute_of_day
+    from expenses
+    where user_id = ${userId} and currency = ${currency} and created_at >= now() - interval '120 days'
+    order by created_at desc
+    limit 600`;
+}
+
+export interface PaidBillRow {
+  payment_id: string;
+  bill_id: string;
+  bill_name: string;
+  amount_minor: number;
+  currency: string;
+  paid_on: LocalDate;
+}
+
+/** Bill payments made in a date range (not undone). Shown in the spending log; counted under Bills. */
+export async function listPaidBills(tx: Tx, userId: string, from: LocalDate, to: LocalDate): Promise<PaidBillRow[]> {
+  return tx<PaidBillRow[]>`
+    select p.id as payment_id, p.bill_id, b.name as bill_name, p.amount_minor, p.currency, p.paid_on
+    from payments p join bills b on b.id = p.bill_id
+    where p.user_id = ${userId} and p.voided_at is null and p.paid_on between ${from} and ${to}
+    order by p.paid_on desc, p.created_at desc`;
+}

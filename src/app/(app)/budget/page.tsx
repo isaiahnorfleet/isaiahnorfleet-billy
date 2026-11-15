@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Receipt } from "lucide-react";
 import { BillyBanner } from "@/components/billy/BillyBanner";
-import { AutoLimitsToggle, CategoryButton, ExpenseItem, GoalButton, IncomeButton, LogSpendingButton, StarterCategoriesButton } from "@/components/app/BudgetForms";
+import { AutoLimitsToggle, CategoryButton, ExpenseItem, GoalButton, IncomeButton, StarterCategoriesButton } from "@/components/app/BudgetForms";
 import { GoalProjectionCard } from "@/components/app/GoalProjectionCard";
 import { Card, SectionTitle } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
-import { categoryHistory, getAutoLimits, GOAL_PRESETS, listBillsForMonth, listCategories, listExpenses, listGoals, listIncomeSources } from "@/lib/data/budget";
+import { categoryHistory, getAutoLimits, GOAL_PRESETS, listBillsForMonth, listCategories, listExpenses, listGoals, listIncomeSources, listPaidBills } from "@/lib/data/budget";
 import { goalMonthlyContribution, projectGoal, typicalMonthlyIncome, type Projection } from "@/lib/domain/projection";
 import { budgetMessage } from "@/lib/domain/budget-messages";
 import { budgetState, computeBudget, parseMonthParam, shiftMonth, type CategoryLine } from "@/lib/domain/budget";
@@ -23,7 +23,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
   const month = parseMonthParam(sp.month, ctx.today);
   const cur = ctx.profile.currency;
 
-  const { incomes, categories, expenses, bills, goals, autoLimits, history } = await withFreshData(ctx, async (tx) => ({
+  const { incomes, categories, expenses, bills, goals, autoLimits, history, paidBills } = await withFreshData(ctx, async (tx) => ({
     incomes: await listIncomeSources(tx, ctx.user.id),
     categories: await listCategories(tx, ctx.user.id),
     expenses: await listExpenses(tx, ctx.user.id, month, endOfMonth(month)),
@@ -31,6 +31,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
     goals: await listGoals(tx, ctx.user.id),
     autoLimits: await getAutoLimits(tx, ctx.user.id),
     history: await categoryHistory(tx, ctx.user.id, month, cur),
+    paidBills: await listPaidBills(tx, ctx.user.id, month, endOfMonth(month)),
   }));
 
   const s = computeBudget({ month, today: ctx.today, currency: cur, incomes, bills, categories, expenses, goals, autoLimits, history });
@@ -58,6 +59,13 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
   });
 
   const catOptions = categories.map((c) => ({ id: c.id, name: c.name }));
+  // One list of everything that went out: logged spending plus bills marked paid (which already
+  // count under Bills, so they're shown here but not added to Spending a second time).
+  type LogItem = { kind: "expense"; date: string; e: (typeof expenses)[number] } | { kind: "bill"; date: string; p: (typeof paidBills)[number] };
+  const log: LogItem[] = [
+    ...expenses.map((e) => ({ kind: "expense" as const, date: e.spent_on, e })),
+    ...paidBills.map((p) => ({ kind: "bill" as const, date: p.paid_on, p })),
+  ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const prev = shiftMonth(month, -1).slice(0, 7);
   const next = shiftMonth(month, 1).slice(0, 7);
   const monthLabel = formatDateLabel(month, { month: "long", year: "numeric" });
@@ -65,7 +73,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
   const leftLabel = s.timing === "past" ? "Left over" : s.timing === "future" ? "Left after bills" : "Left to spend";
 
   return (
-    <div className="space-y-6 pb-16 sm:pb-0">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Budget</h1>
@@ -83,10 +91,6 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
           <Link href={`/budget?month=${next}`} className="flex h-10 w-10 items-center justify-center rounded-xl border border-line hover:bg-ivory/5" aria-label="Next month">
             <ChevronRight size={20} aria-hidden />
           </Link>
-          {/* One button: floating above the tab bar on phones, inline in the header on larger screens. */}
-          <div className="fixed right-4 bottom-[calc(5.25rem+var(--safe-bottom))] z-30 sm:static sm:ml-2">
-            <LogSpendingButton categories={catOptions} today={ctx.today} currency={cur} className="h-13 px-6 shadow-xl sm:h-11 sm:px-4 sm:shadow-none" />
-          </div>
         </div>
       </div>
 
@@ -317,20 +321,35 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
         <SectionTitle>
           <span id="spend-title">Spending in {formatDateLabel(month, { month: "long" })}</span>
         </SectionTitle>
-        {expenses.length === 0 ? (
-          <Card className="p-5 text-center text-muted">{s.timing === "future" ? "Nothing yet. This month hasn't started." : "Nothing logged yet. Tap Log spending when you buy something."}</Card>
+        {expenses.length === 0 && paidBills.length === 0 ? (
+          <Card className="p-5 text-center text-muted">{s.timing === "future" ? "Nothing yet. This month hasn't started." : "Nothing logged yet. Tap the + button when you buy something."}</Card>
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] border border-line bg-panel">
-            {expenses.map((e) => (
-              <ExpenseItem
-                key={e.id}
-                expense={{ id: e.id, amount_minor: e.amount_minor, category_id: e.category_id, spent_on: e.spent_on, note: e.note }}
-                categoryName={e.category_name}
-                categories={catOptions}
-                today={ctx.today}
-                currency={cur}
-              />
-            ))}
+            {log.map((item) =>
+              item.kind === "expense" ? (
+                <ExpenseItem
+                  key={item.e.id}
+                  expense={{ id: item.e.id, amount_minor: item.e.amount_minor, category_id: item.e.category_id, spent_on: item.e.spent_on, note: item.e.note }}
+                  categoryName={item.e.category_name}
+                  categories={catOptions}
+                  today={ctx.today}
+                  currency={cur}
+                />
+              ) : (
+                <li key={item.p.payment_id}>
+                  <Link href={`/bills/${item.p.bill_id}`} className="flex w-full items-center gap-3 p-4 hover:bg-ivory/5" data-testid="paid-bill-row">
+                    <Receipt size={18} className="shrink-0 text-muted" aria-hidden />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{item.p.bill_name}</p>
+                      <p className="text-sm text-muted">
+                        {formatDateLabel(item.p.paid_on, { weekday: "short", month: "short", day: "numeric" })} · Bill paid · counted in Bills
+                      </p>
+                    </div>
+                    <Money minor={item.p.amount_minor} currency={item.p.currency} className="font-bold text-muted" />
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </section>

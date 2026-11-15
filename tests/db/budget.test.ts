@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { withUser } from "@/lib/db/client";
 import { createBill } from "@/lib/data/bills";
-import { recordPayment } from "@/lib/data/payments";
+import { recordPayment, voidPayment } from "@/lib/data/payments";
 import { materializeOccurrences } from "@/lib/data/occurrences";
 import {
   addExpense,
@@ -12,12 +12,15 @@ import {
   listExpenses,
   getAutoLimits,
   listGoals,
+  listPaidBills,
+  listRecentForQuickAdd,
   saveGoal,
   setAutoLimits,
   saveCategory,
   saveIncomeSource,
   STARTER_CATEGORIES,
 } from "@/lib/data/budget";
+import { localMinutesIn } from "@/lib/domain/dates";
 import { billInput, createUser, resetDb } from "./helpers";
 
 const today = "2026-11-11";
@@ -105,5 +108,26 @@ describe("budget data", () => {
     await expect(
       withUser(alice.id, (tx) => tx`insert into budget_goals (user_id, name, amount_minor, percent_bp) values (${alice.id}, 'Both', 100, 100)`),
     ).rejects.toThrow(/check constraint/);
+  });
+
+  it("lists paid bills for the spending log and recent entries for quick add, per user", async () => {
+    await withUser(alice.id, async (tx) => {
+      const rent = await createBill(tx, alice.id, billInput({ name: "Rent", amount_minor: 145000, due_date: "2026-11-01" }), today);
+      await materializeOccurrences(tx, alice.id, today);
+      const [occ] = await tx<{ id: string }[]>`select id from bill_occurrences where bill_id = ${rent} and due_date = '2026-11-01'`;
+      const { paymentId } = await recordPayment(tx, alice.id, { occurrenceId: occ.id, amountMinor: 140000, paidOn: "2026-11-02", note: null });
+      expect(await listPaidBills(tx, alice.id, "2026-11-01", "2026-11-30")).toMatchObject([{ bill_name: "Rent", amount_minor: 140000, paid_on: "2026-11-02" }]);
+      await voidPayment(tx, alice.id, paymentId, "undo");
+      expect(await listPaidBills(tx, alice.id, "2026-11-01", "2026-11-30")).toEqual([]);
+
+      await addExpense(tx, alice.id, { category_id: null, amount_minor: 245, currency: "CAD", spent_on: today, note: "Tim Hortons" });
+      await addExpense(tx, alice.id, { category_id: null, amount_minor: 999, currency: "USD", spent_on: today, note: "Other currency" });
+      await tx`update expenses set created_at = now() - interval '200 days' where note = 'Other currency'`;
+    });
+    const recent = await withUser(alice.id, (tx) => listRecentForQuickAdd(tx, alice.id, "America/Toronto", "CAD"));
+    const [{ created_at }] = await withUser(alice.id, (tx) => tx<{ created_at: Date }[]>`select created_at from expenses where note = 'Tim Hortons'`);
+    expect(recent).toEqual([{ category_id: null, note: "Tim Hortons", amount_minor: 245, minute_of_day: localMinutesIn("America/Toronto", created_at) }]);
+    expect(await withUser(bob.id, (tx) => listRecentForQuickAdd(tx, bob.id, "America/Toronto", "CAD"))).toEqual([]);
+    expect(await withUser(bob.id, (tx) => listPaidBills(tx, bob.id, "2026-11-01", "2026-11-30"))).toEqual([]);
   });
 });

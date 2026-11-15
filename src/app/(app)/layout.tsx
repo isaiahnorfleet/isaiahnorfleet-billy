@@ -2,6 +2,7 @@ import Link from "next/link";
 import { UserRound } from "lucide-react";
 import { BillyMascot } from "@/components/billy/BillyMascot";
 import { BottomNav, SideNav } from "@/components/app/NavLinks";
+import { QuickAdd } from "@/components/app/QuickAdd";
 import { OfflineBanner } from "@/components/app/OfflineBanner";
 import { ServiceWorkerRegistrar } from "@/components/app/ServiceWorker";
 import { SignOutButton } from "@/components/app/SignOutButton";
@@ -41,11 +42,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <UserRound size={20} aria-hidden />
             </Link>
           </header>
-          <main id="main" className="w-full flex-1 px-4 pt-3 pb-[calc(6rem+var(--safe-bottom))] sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
+          <main id="main" className="w-full flex-1 px-4 pt-3 pb-[calc(10rem+var(--safe-bottom))] sm:px-6 lg:px-10 lg:pt-8 lg:pb-28">
             {children}
           </main>
         </div>
       </div>
+      <QuickAdd />
       <BottomNav />
     </ToastProvider>
   );

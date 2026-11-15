@@ -10,13 +10,16 @@ import {
   deleteExpense,
   deleteGoal,
   deleteIncomeSource,
+  listCategories,
+  listRecentForQuickAdd,
   saveGoal,
   setAutoLimits,
   saveCategory,
   saveIncomeSource,
   updateExpense,
 } from "@/lib/data/budget";
-import { todayIn } from "@/lib/domain/dates";
+import { localMinutesIn, todayIn } from "@/lib/domain/dates";
+import type { PastExpense, QuickCategory } from "@/lib/domain/quick-add";
 import { categoryInput, expenseInput, fieldErrors, goalInput, incomeInput } from "@/lib/validation";
 import { failure, type ActionResult } from "./result";
 
@@ -158,5 +161,45 @@ export async function setAutoLimitsAction(on: boolean): Promise<ActionResult> {
     return done();
   } catch {
     return failure("Couldn't change that setting. Try again.");
+  }
+}
+
+export interface QuickAddData {
+  categories: QuickCategory[];
+  past: PastExpense[];
+  today: string;
+  minuteNow: number;
+  currency: string;
+}
+
+/** Everything the quick-add sheet needs to make smart suggestions. Loaded when the sheet opens. */
+export async function quickAddDataAction(): Promise<ActionResult<{ data: QuickAddData }>> {
+  try {
+    const { user, profile } = await requireUserForAction();
+    const { categories, past } = await withUser(user.id, async (tx) => ({
+      categories: (await listCategories(tx, user.id)).map((c) => ({ id: c.id, name: c.name })),
+      past: await listRecentForQuickAdd(tx, user.id, profile.time_zone, profile.currency),
+    }));
+    const now = new Date();
+    return { ok: true, data: { categories, past, today: todayIn(profile.time_zone, now), minuteNow: localMinutesIn(profile.time_zone, now), currency: profile.currency } };
+  } catch (err) {
+    console.error("quickAddData failed", (err as Error).message);
+    return failure("Couldn't load your categories.");
+  }
+}
+
+/** Log one expense from the quick-add sheet. Returns its id so the toast can undo it. */
+export async function quickLogAction(input: { amount: string; category_id: string | null; spent_on: string; note: string }): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { user, profile } = await requireUserForAction();
+    const parsed = expenseInput.safeParse({ ...input, category_id: optionalId(input.category_id), currency: profile.currency });
+    if (!parsed.success) return failure("Enter an amount like 23.50.", fieldErrors(parsed.error));
+    if (parsed.data.spent_on > todayIn(profile.time_zone)) return failure("That date is in the future.");
+    const id = await withUser(user.id, (tx) => addExpense(tx, user.id, parsed.data));
+    revalidatePath("/", "layout");
+    return { ok: true, id };
+  } catch (err) {
+    console.error("quickLog failed", (err as Error).message);
+    return failure("Couldn't log that. Try again.");
   }
 }

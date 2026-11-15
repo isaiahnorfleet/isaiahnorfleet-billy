@@ -2,7 +2,6 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
 import {
   addStarterCategoriesAction,
   deleteCategoryAction,
@@ -170,34 +169,6 @@ function ExpenseDialog({
         )}
       </form>
     </Dialog>
-  );
-}
-
-export function LogSpendingButton({
-  categories,
-  today,
-  currency,
-  defaultCategoryId,
-  label = "Log spending",
-  size = "md",
-  className = "",
-}: {
-  categories: CategoryOption[];
-  today: string;
-  currency: string;
-  defaultCategoryId?: string | null;
-  label?: string;
-  size?: "sm" | "md" | "lg";
-  className?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button size={size} className={className} onClick={() => setOpen(true)}>
-        <Plus size={size === "sm" ? 16 : 20} aria-hidden /> {label}
-      </Button>
-      <ExpenseDialog open={open} onClose={() => setOpen(false)} categories={categories} today={today} currency={currency} defaultCategoryId={defaultCategoryId} />
-    </>
   );
 }
 
