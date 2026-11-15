@@ -73,16 +73,62 @@ export function QuickAdd() {
     };
   }, [load, show]);
 
+  // Tuck the + away while scrolling down so it never sits on a card's buttons. It comes back on
+  // scroll up, near the top or at the end of the page (which leaves room for it), and once
+  // scrolling stops, as long as no button or link is underneath where it would be.
+  const [tucked, setTucked] = useState(false);
+  const fabRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    let last = window.scrollY;
+    let idle: ReturnType<typeof setTimeout> | undefined;
+    const coversControl = () => {
+      const r = fabRef.current?.getBoundingClientRect();
+      if (!r) return false;
+      // Where the button sits when shown (it slides down a little while tucked).
+      const shift = fabRef.current!.classList.contains("translate-y-6") ? 24 : 0;
+      const points: [number, number][] = [
+        [r.left + r.width / 2, r.top - shift + r.height / 2],
+        [r.left + 6, r.top - shift + 6],
+        [r.right - 6, r.top - shift + 6],
+        [r.left + 6, r.bottom - shift - 6],
+        [r.right - 6, r.bottom - shift - 6],
+      ];
+      return points.some(([x, y]) =>
+        document.elementsFromPoint(x, y).some((el) => el !== fabRef.current && !fabRef.current!.contains(el) && el.closest("a,button,input,select,textarea,[role=button]")),
+      );
+    };
+    const onScroll = () => {
+      const y = window.scrollY;
+      const atEnd = y + window.innerHeight >= document.documentElement.scrollHeight - 24;
+      if (y < 80 || atEnd || y < last - 4) setTucked(false);
+      else if (y > last + 4) setTucked(true);
+      last = y;
+      clearTimeout(idle);
+      idle = setTimeout(() => {
+        if (!coversControl()) setTucked(false);
+      }, 700);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(idle);
+    };
+  }, []);
+
   return (
     <>
       <button
+        ref={fabRef}
         type="button"
         onClick={show}
+        onFocus={() => setTucked(false)}
         aria-label="Log spending"
         data-testid="quick-add-fab"
-        className="fixed right-4 bottom-[calc(5.25rem+var(--safe-bottom))] z-30 flex h-15 w-15 items-center justify-center rounded-full bg-lime text-ink shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform hover:bg-lime-press active:scale-95 lg:right-8 lg:bottom-8"
+        className={`fixed right-4 bottom-[calc(5.25rem+var(--safe-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-lime text-ink shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-[transform,opacity] duration-200 hover:bg-lime-press active:scale-95 lg:right-8 lg:bottom-8 ${
+          tucked ? "pointer-events-none translate-y-6 opacity-0" : ""
+        }`}
       >
-        <Plus size={30} strokeWidth={2.6} aria-hidden />
+        <Plus size={28} strokeWidth={2.6} aria-hidden />
       </button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Log spending">
         {open && <QuickAddSheet data={data} loadError={loadError} onRetry={load} onDone={() => { setOpen(false); load(); }} />}

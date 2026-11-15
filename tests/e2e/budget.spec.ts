@@ -29,7 +29,9 @@ test("budget: income minus bills minus spending gives left to spend, and Billy r
   await cat.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByTestId("budget-category").filter({ hasText: "Groceries" })).toContainText("$100.00 left");
 
-  // Log spending over the Groceries limit.
+  // Log spending over the Groceries limit. The + tucks away when it would cover a card, and
+  // scrolling up brings it back.
+  await page.mouse.wheel(0, -3000);
   await page.getByTestId("quick-add-fab").click();
   const log = page.getByRole("dialog", { name: "Log spending" });
   for (const k of ["1", "5", "0"]) await log.getByRole("button", { name: k, exact: true }).click();
