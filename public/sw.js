@@ -1,5 +1,5 @@
 /* Billy service worker: web push + a small, honest offline cache. */
-const CACHE = "billy-v1";
+const CACHE = "billy-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

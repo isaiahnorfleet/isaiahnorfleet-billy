@@ -1,28 +1,29 @@
 /**
  * Renders Billy into PNG app icons. Run: npx tsx scripts/generate-icons.tsx
- * The artwork is scripts/assets/billy-icon.png: the idle Billy drawing, background removed and
- * cropped to his head and shoulders so he still reads at home-screen size.
+ * The artwork is scripts/assets/billy-icon.png: the full-bleed app icon (Billy the receipt on lime).
+ * Billy's face sits inside the central 80% circle, so the same square art also works as the
+ * maskable icon: Android's mask only trims the background and the edges of his fists.
  * Uses the preinstalled Playwright Chromium.
  */
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
-const LIME = "#c1f474";
+const LIME = "#92ea03"; // matches the artwork's background
 const art = `data:image/png;base64,${readFileSync("scripts/assets/billy-icon.png").toString("base64")}`;
 
-// `scale` is the artwork's width as a share of the icon; maskable icons keep Billy inside the safe zone.
+// `scale` is the artwork's width as a share of the icon, centred on the matching lime.
 function page(size: number, scale: number, radius: number) {
-  return `<html><body style="margin:0;background:transparent"><div style="width:${size}px;height:${size}px;background:${LIME};border-radius:${radius}px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">
-  <img src="${art}" style="width:${size * scale}px;margin-bottom:${size * (1 - scale) * 0.12}px"></div></body></html>`;
+  return `<html><body style="margin:0;background:transparent"><div style="width:${size}px;height:${size}px;background:${LIME};border-radius:${radius}px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+  <img src="${art}" style="width:${size * scale}px;height:${size * scale}px"></div></body></html>`;
 }
 
 const targets: { file: string; size: number; scale: number; radius: number }[] = [
-  { file: "public/icons/icon-192.png", size: 192, scale: 0.86, radius: 0 },
-  { file: "public/icons/icon-512.png", size: 512, scale: 0.86, radius: 0 },
-  { file: "public/icons/maskable-512.png", size: 512, scale: 0.66, radius: 0 },
-  { file: "public/icons/apple-touch-icon.png", size: 180, scale: 0.86, radius: 0 },
-  { file: "public/icons/favicon-32.png", size: 32, scale: 0.96, radius: 7 },
-  { file: "src/app/icon.png", size: 32, scale: 0.96, radius: 7 },
+  { file: "public/icons/icon-192.png", size: 192, scale: 1, radius: 0 },
+  { file: "public/icons/icon-512.png", size: 512, scale: 1, radius: 0 },
+  { file: "public/icons/maskable-512.png", size: 512, scale: 1, radius: 0 },
+  { file: "public/icons/apple-touch-icon.png", size: 180, scale: 1, radius: 0 },
+  { file: "public/icons/favicon-32.png", size: 32, scale: 1, radius: 7 },
+  { file: "src/app/icon.png", size: 32, scale: 1, radius: 7 },
 ];
 
 (async () => {
