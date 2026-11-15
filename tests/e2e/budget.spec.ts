@@ -30,11 +30,13 @@ test("budget: income minus bills minus spending gives left to spend, and Billy r
   await expect(page.getByTestId("budget-category").filter({ hasText: "Groceries" })).toContainText("$100.00 left");
 
   // Log spending over the Groceries limit.
-  await page.getByRole("button", { name: "Log spending" }).click();
+  await page.getByTestId("quick-add-fab").click();
   const log = page.getByRole("dialog", { name: "Log spending" });
-  await log.getByLabel("Amount").fill("150");
+  for (const k of ["1", "5", "0"]) await log.getByRole("button", { name: k, exact: true }).click();
+  await expect(log.getByTestId("quick-amount")).toHaveText("$150");
+  // With an amount typed, tapping a category logs it.
   await log.getByRole("button", { name: "Groceries" }).click();
-  await log.getByRole("button", { name: "Log it" }).click();
+  await expect(log).toBeHidden();
   await expect(page.getByTestId("left-to-spend")).toHaveText("$1,850.00");
   await expect(page.getByTestId("budget-category").filter({ hasText: "Groceries" })).toContainText("$50.00 over");
   await expect(page.getByTestId("billy-message")).toContainText("Groceries");
@@ -89,4 +91,37 @@ test("budget plan: goals come out first, Billy sets limits, and goals show a pro
   await expect(page.getByText("Billy split $2,700.00 of your spending money across your categories.")).toBeVisible();
   await expect(page.getByTestId("budget-category").filter({ hasText: "Groceries" })).toContainText("left");
   await expectNoHorizontalOverflow(page);
+});
+
+test("quick add: type one line, Billy remembers the store, and undo works", async ({ page }) => {
+  await signInOnboarded(page, uniqueEmail("quick"));
+  await page.goto("/budget");
+  await page.getByRole("button", { name: "Use starter categories" }).click();
+  await expect(page.getByTestId("budget-category").first()).toBeVisible();
+
+  // From another screen, type one line.
+  await page.goto("/bills");
+  await page.getByTestId("quick-add-fab").click();
+  const log = page.getByRole("dialog", { name: "Log spending" });
+  await log.getByRole("button", { name: "Type it" }).click();
+  await log.getByTestId("quick-text").fill("23.50 shopping Costco");
+  await expect(log.getByTestId("quick-preview")).toContainText("$23.50");
+  await expect(log.getByTestId("quick-preview")).toContainText("Shopping");
+  await log.getByTestId("quick-text").press("Enter");
+  await expect(log).toBeHidden();
+  await expect(page.getByRole("status")).toContainText("Logged $23.50 · Shopping");
+
+  // Next time, "Costco" alone goes to Shopping (not the built-in Groceries guess). The sheet remembers "Type it".
+  await page.getByTestId("quick-add-fab").click();
+  await log.getByTestId("quick-text").fill("40 costco");
+  await expect(log.getByTestId("quick-preview")).toContainText("Shopping");
+  await expect(log.getByTestId("quick-preview")).toContainText("like last time");
+  await log.getByRole("button", { name: "Log $40.00 · Shopping" }).click();
+  await expect(log).toBeHidden();
+  await page.getByRole("status").getByRole("button", { name: "Undo" }).last().click();
+
+  await page.goto("/budget");
+  await expect(page.getByTestId("expense-row")).toHaveCount(1);
+  await expect(page.getByTestId("expense-row")).toContainText("Costco");
+  await expect(page.getByTestId("expense-row")).toContainText("$23.50");
 });
