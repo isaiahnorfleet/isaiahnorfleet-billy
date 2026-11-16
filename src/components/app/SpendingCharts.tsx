@@ -98,13 +98,7 @@ export function SpendingBreakdown({ insights, story, currency }: { insights: Spe
 
       {insights.parts.length > 0 && (
         <>
-          <div className="px-4 sm:px-5">
-            <div className="flex h-2.5 gap-0.5" role="img" aria-label={`Spending split: ${insights.parts.map((p) => `${p.name} ${Math.round(p.share * 100)}%`).join(", ")}`}>
-              {blocks.map((b) => (
-                <span key={b.s.key} className="h-full min-w-1 rounded-full" style={{ flexGrow: b.amount, flexBasis: 0, background: seriesColor(b.s) }} title={`${b.s.name}: ${money(b.amount)}`} />
-              ))}
-            </div>
-          </div>
+          <SpendingDonut blocks={blocks} total={insights.total_minor} currency={currency} label={`Spending split: ${insights.parts.map((p) => `${p.name} ${Math.round(p.share * 100)}%`).join(", ")}`} />
           <ul className="mt-2 divide-y divide-line">
             {parts.map((p, i) => {
               const Icon = iconFor(p.name);
@@ -146,6 +140,79 @@ export function SpendingBreakdown({ insights, story, currency }: { insights: Spe
         </>
       )}
     </Card>
+  );
+}
+
+/** Point on a circle, angle in turns from 12 o'clock, clockwise. */
+function polar(r: number, turn: number): [number, number] {
+  const a = turn * 2 * Math.PI;
+  return [100 + r * Math.sin(a), 100 - r * Math.cos(a)];
+}
+
+function arcPath(r0: number, r1: number, t0: number, t1: number): string {
+  const large = t1 - t0 > 0.5 ? 1 : 0;
+  const [a, b] = polar(r1, t0);
+  const [c, d] = polar(r1, t1);
+  const [e, f] = polar(r0, t1);
+  const [g, h] = polar(r0, t0);
+  const n = (v: number) => v.toFixed(2);
+  return `M${n(a)},${n(b)}A${r1},${r1} 0 ${large} 1 ${n(c)},${n(d)}L${n(e)},${n(f)}A${r0},${r0} 0 ${large} 0 ${n(g)},${n(h)}Z`;
+}
+
+/** The pie: a donut of the month's split, total in the middle. Tap a slice to read it there. */
+function SpendingDonut({ blocks, total, currency, label }: { blocks: { s: Series; amount: number }[]; total: number; currency: string; label: string }) {
+  const [sel, setSel] = useState<string | null>(null);
+  const money = (m: number) => formatMoney(m, currency);
+  const picked = blocks.find((b) => b.s.key === sel) ?? null;
+  const R0 = 62;
+  const R1 = 92;
+  const slices = blocks.map((b, i) => {
+    const before = blocks.slice(0, i).reduce((a, x) => a + x.amount, 0);
+    return { ...b, t0: before / total, t1: (before + b.amount) / total };
+  });
+  return (
+    <div className="flex flex-col items-center px-4 pt-1 pb-2 sm:px-5" data-testid="spending-donut">
+      <div className="relative w-full max-w-[220px]">
+        <svg viewBox="0 0 200 200" className="block h-auto w-full select-none" role="img" aria-label={label}>
+          {slices.length === 1 ? (
+            <circle cx="100" cy="100" r={(R0 + R1) / 2} fill="none" stroke={seriesColor(slices[0].s)} strokeWidth={R1 - R0} />
+          ) : (
+            slices.map((sl) => {
+              const on = sel === sl.s.key;
+              return (
+                <path
+                  key={sl.s.key}
+                  d={arcPath(R0, on ? R1 + 5 : R1, sl.t0, sl.t1)}
+                  fill={seriesColor(sl.s)}
+                  stroke="var(--color-panel)"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                  opacity={sel && !on ? 0.4 : 1}
+                  className="cursor-pointer transition-opacity"
+                  onClick={() => setSel(on ? null : sl.s.key)}
+                  onPointerEnter={(e) => e.pointerType === "mouse" && setSel(sl.s.key)}
+                  onPointerLeave={(e) => e.pointerType === "mouse" && setSel(null)}
+                >
+                  <title>{`${sl.s.name}: ${money(sl.amount)}`}</title>
+                </path>
+              );
+            })
+          )}
+        </svg>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center" aria-live="polite">
+          <span className="max-w-[110px] truncate text-xs font-semibold text-muted">{picked ? picked.s.name : "Spent"}</span>
+          <span className="font-display text-xl font-extrabold tabular">{money(picked ? picked.amount : total)}</span>
+          {picked && <span className="text-xs text-muted tabular">{Math.round((picked.amount / total) * 100)}%</span>}
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap justify-center gap-x-3.5 gap-y-1.5 text-xs text-muted">
+        {blocks.map((b) => (
+          <span key={b.s.key} className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: seriesColor(b.s) }} aria-hidden /> {b.s.name}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

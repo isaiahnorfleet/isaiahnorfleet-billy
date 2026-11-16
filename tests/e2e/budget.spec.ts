@@ -46,6 +46,7 @@ test("budget: income minus bills minus spending gives left to spend, and Billy r
   await expect(page.getByTestId("spending-headline")).toHaveText("Groceries is over its limit");
   await expect(page.getByTestId("spending-part").first()).toContainText("$150.00");
   await expect(page.getByTestId("spending-part").first()).toContainText("100%");
+  await expect(page.getByTestId("spending-donut")).toContainText("$150.00");
   await expectNoHorizontalOverflow(page);
 
   // Edit, then remove the entry.
