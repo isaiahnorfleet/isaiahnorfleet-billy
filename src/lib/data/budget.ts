@@ -3,6 +3,7 @@ import type { LocalDate } from "@/lib/domain/dates";
 import { endOfMonth } from "@/lib/domain/dates";
 import { occurrencesBetween, type Recurrence } from "@/lib/domain/recurrence";
 import type { BudgetBillInput } from "@/lib/domain/budget";
+import type { MonthCategoryTotal } from "@/lib/domain/spending-insights";
 import type { CategoryInput, ExpenseInput, GoalInput, IncomeInput } from "@/lib/validation";
 
 export interface IncomeSourceRow {
@@ -226,6 +227,16 @@ export async function categoryHistory(tx: Tx, userId: string, month: LocalDate, 
       and spent_on >= (${month}::date - interval '3 months')::date and spent_on < ${month}::date
     group by category_id`;
   return new Map(rows.map((r) => [r.category_id, r.total]));
+}
+
+/** Logged spending per month and category, for the "where your money went" charts. */
+export async function spendingByMonth(tx: Tx, userId: string, fromMonth: LocalDate, toMonth: LocalDate, currency: string): Promise<MonthCategoryTotal[]> {
+  return tx<MonthCategoryTotal[]>`
+    select to_char(date_trunc('month', spent_on), 'YYYY-MM-DD') as month, category_id, sum(amount_minor)::bigint as total_minor
+    from expenses
+    where user_id = ${userId} and currency = ${currency}
+      and spent_on >= ${fromMonth}::date and spent_on < (${toMonth}::date + interval '1 month')::date
+    group by 1, 2`;
 }
 
 // ---------------------------------------------------------------------------

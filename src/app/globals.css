@@ -32,6 +32,14 @@
   --billy-ink: #233018;
   --billy-shade: #9fd24f;
   --billy-limb: #6f9a3e;
+  /* Chart series (spending categories), in fixed order. Validated as a set against the panel
+     surface for color-vision deficiency and contrast; don't reorder or add a sixth hue. */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-other: #6b7268;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }

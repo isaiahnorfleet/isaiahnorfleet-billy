@@ -4,26 +4,32 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Receipt } from "lucide-react";
 import { BillyBanner } from "@/components/billy/BillyBanner";
 import { AutoLimitsToggle, CategoryButton, ExpenseItem, GoalButton, IncomeButton, StarterCategoriesButton } from "@/components/app/BudgetForms";
 import { GoalProjectionCard } from "@/components/app/GoalProjectionCard";
+import { SpendingBreakdown, SpendingTrend } from "@/components/app/SpendingCharts";
 import { Card, SectionTitle } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
-import { categoryHistory, getAutoLimits, GOAL_PRESETS, listBillsForMonth, listCategories, listExpenses, listGoals, listIncomeSources, listPaidBills } from "@/lib/data/budget";
+import { categoryHistory, getAutoLimits, GOAL_PRESETS, listBillsForMonth, listCategories, listExpenses, listGoals, listIncomeSources, listPaidBills, spendingByMonth } from "@/lib/data/budget";
 import { goalMonthlyContribution, projectGoal, typicalMonthlyIncome, type Projection } from "@/lib/domain/projection";
 import { budgetMessage } from "@/lib/domain/budget-messages";
 import { budgetState, computeBudget, parseMonthParam, shiftMonth, type CategoryLine } from "@/lib/domain/budget";
 import { endOfMonth, formatDateLabel, startOfMonth } from "@/lib/domain/dates";
 import { formatMoney } from "@/lib/domain/money";
+import { spendingInsights, spendingStory, trendMonths } from "@/lib/domain/spending-insights";
 import { RECURRENCE_LABELS } from "@/lib/domain/recurrence";
 import { pageContext, withFreshData } from "@/lib/server/context";
 
 export const metadata: Metadata = { title: "Budget" };
+
+/** Months the spending trend shows, ending at the month on screen. */
+const TREND_MONTHS = 6;
 
 export default async function BudgetPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const ctx = await pageContext();
   const sp = await searchParams;
   const month = parseMonthParam(sp.month, ctx.today);
   const cur = ctx.profile.currency;
+  const trendWindow = trendMonths(month, TREND_MONTHS);
 
-  const { incomes, categories, expenses, bills, goals, autoLimits, history, paidBills } = await withFreshData(ctx, async (tx) => ({
+  const { incomes, categories, expenses, bills, goals, autoLimits, history, paidBills, byMonth } = await withFreshData(ctx, async (tx) => ({
     incomes: await listIncomeSources(tx, ctx.user.id),
     categories: await listCategories(tx, ctx.user.id),
     expenses: await listExpenses(tx, ctx.user.id, month, endOfMonth(month)),
@@ -32,6 +38,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
     autoLimits: await getAutoLimits(tx, ctx.user.id),
     history: await categoryHistory(tx, ctx.user.id, month, cur),
     paidBills: await listPaidBills(tx, ctx.user.id, month, endOfMonth(month)),
+    byMonth: await spendingByMonth(tx, ctx.user.id, trendWindow[0], month, cur),
   }));
 
   const s = computeBudget({ month, today: ctx.today, currency: cur, incomes, bills, categories, expenses, goals, autoLimits, history });
@@ -57,6 +64,17 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
     left: money(Math.abs(s.left_minor)),
     perDay: money(s.perDay_minor ?? 0),
   });
+
+  const insights = spendingInsights({ month, months: TREND_MONTHS, categories, rows: byMonth });
+  const story = spendingStory(insights, {
+    tone: ctx.profile.tone,
+    timing: s.timing,
+    overLimit: s.categories.filter((c) => c.over).map((c) => c.name),
+    money,
+    monthName: formatDateLabel(month, { month: "long" }),
+    previousMonthName: formatDateLabel(shiftMonth(month, -1), { month: "long" }),
+  });
+  const showTrend = insights.trend.filter((t) => t.total_minor > 0).length >= 2;
 
   const catOptions = categories.map((c) => ({ id: c.id, name: c.name }));
   // One list of everything that went out: logged spending plus bills marked paid (which already
@@ -129,6 +147,19 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
           </div>
         </dl>
       </Card>
+
+      {/* Where the money went */}
+      {(categories.length > 0 || insights.parts.length > 0) && (
+        <section aria-labelledby="where-title">
+          <SectionTitle>
+            <span id="where-title">Where your money went</span>
+          </SectionTitle>
+          <div className={`grid gap-3 ${showTrend ? "lg:grid-cols-2" : ""}`}>
+            <SpendingBreakdown insights={insights} story={story} currency={cur} />
+            {showTrend && <SpendingTrend insights={insights} currency={cur} />}
+          </div>
+        </section>
+      )}
 
       {/* Billy's plan: income - bills - goals = spending money */}
       <section aria-labelledby="plan-title">
