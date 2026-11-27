@@ -130,6 +130,9 @@ describe("scheduled reminders", () => {
     const { billId } = await billDueNov10();
     await cycle(at("2026-11-09T20:00:00Z")); // sends the 1-day reminder, plans the due-day one
     await withUser(user.id, (tx) => updateBill(tx, user.id, billId, billInput({ due_date: "2026-11-12" }), "2026-11-09"));
+    // The rescheduled occurrence is new; date it to the change (Nov 9) rather than the real clock, which only plans
+    // reminders after an occurrence exists. Without this the test failed once real time passed Nov 11.
+    await sql()`update bill_occurrences set created_at = '2026-11-09T20:00:00Z' where due_date = '2026-11-12'`;
     senders.sent.length = 0;
     await cycle(at("2026-11-10T14:00:00Z"));
     expect(senders.sent).toHaveLength(0);
