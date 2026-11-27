@@ -55,6 +55,8 @@ export default async function EditBillPage({ params }: { params: Promise<{ id: s
             notes: bill.notes ?? "",
             reminders_enabled: bill.reminders_enabled,
             reminder_offsets: bill.reminder_offsets,
+            business_use: bill.business_use,
+            business_share_pct: bill.business_share_bp ? String(bill.business_share_bp / 100) : "",
           }}
           today={ctx.today}
           defaultOffsets={prefs.default_offsets}

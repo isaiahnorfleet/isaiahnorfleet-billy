@@ -28,3 +28,13 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   taxes: "Taxes",
   other: "Other",
 };
+
+/** "For the business?" on a bill. Only business and mixed bills are shared with Norfleet One (with the share). */
+export const BUSINESS_USES = ["unclassified", "business", "personal", "mixed"] as const;
+export type BusinessUse = (typeof BUSINESS_USES)[number];
+export const BUSINESS_USE_LABELS: Record<BusinessUse, string> = {
+  unclassified: "Not sorted yet",
+  business: "Business",
+  personal: "Personal",
+  mixed: "Partly business",
+};

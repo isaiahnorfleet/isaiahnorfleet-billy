@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "norfleet:common.error@1",
+  "title": "Norfleet Connect error body, v1 (no stack traces, no SQL, no detail about which check failed)",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "enum": ["unauthorized", "forbidden_scope", "unsupported_version", "rate_limited", "invalid_request", "unavailable"] },
+        "message": { "type": "string", "maxLength": 200 }
+      }
+    }
+  }
+}

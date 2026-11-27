@@ -21,3 +21,10 @@ grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 grant authenticated to current_user;
 grant anon to current_user;
+
+-- Vault stand-in for the Norfleet One bridge (hosted Supabase encrypts these; local tests keep them in plain text).
+create schema if not exists vault;
+create table if not exists vault.secrets (id uuid primary key default gen_random_uuid(), name text unique, description text, secret text not null);
+create or replace view vault.decrypted_secrets as select id, name, description, secret as decrypted_secret from vault.secrets;
+create or replace function vault.create_secret(new_secret text, new_name text default null, new_description text default '', new_key_id uuid default null)
+  returns uuid language sql as $$ insert into vault.secrets (secret, name, description) values (new_secret, new_name, new_description) returning id $$;

@@ -9,6 +9,7 @@ import { PushSetup } from "@/components/app/PushSetup";
 import { DeleteAccount, PasswordForm, PreferencesForm, ProfileForm, RemoveDeviceButton, TestButtons } from "@/components/app/SettingsForms";
 import { SignOutButton } from "@/components/app/SignOutButton";
 import { Card } from "@/components/ui/Card";
+import { NorfleetOneCard, type ConnectBills, type ConnectKeyRow } from "@/components/app/NorfleetOneCard";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -21,11 +22,12 @@ const KIND: Record<string, string> = { before: "Heads-up", due: "Due today", ove
 export default async function SettingsPage() {
   const ctx = await pageContext();
   const tz = ctx.profile.time_zone;
-  const { prefs, devices, deliveries, pending } = await withUser(ctx.user.id, async (tx) => ({
+  const { prefs, devices, deliveries, pending, connect } = await withUser(ctx.user.id, async (tx) => ({
     prefs: await getPreferences(tx, ctx.user.id),
     devices: await listPushSubscriptions(tx, ctx.user.id),
     deliveries: await listRecentDeliveries(tx, ctx.user.id, 15),
     pending: await listPendingReminders(tx, ctx.user.id, 8),
+    connect: (await tx<{ j: { keys: ConnectKeyRow[]; bills: ConnectBills } }[]>`select public.connect_status() as j`)[0].j,
   }));
   const [lastRun] = await withService((tx) => tx<{ started_at: Date; ok: boolean | null }[]>`select started_at, ok from job_runs where job = 'reminders' order by started_at desc limit 1`);
   const schedulerHealthy = isSchedulerHealthy(lastRun);
@@ -128,6 +130,12 @@ export default async function SettingsPage() {
           </ul>
         )}
         <p className="mt-2 text-xs text-muted">&ldquo;Accepted&rdquo; means Apple, Google or the email provider took the message. It doesn&apos;t confirm it was displayed or read.</p>
+      </Card>
+
+      <Card className="p-5 sm:p-6" id="norfleet-one">
+        <h2 className="mb-1 text-xl font-bold">Norfleet One</h2>
+        <p className="mb-4 text-sm text-muted">Share your business bills with Norfleet One (Capital → Obligations), read-only. Mark a bill &ldquo;For the business?&rdquo; when you edit it.</p>
+        <NorfleetOneCard keys={connect.keys} bills={connect.bills} timeZone={tz} />
       </Card>
 
       <Card className="p-5 sm:p-6">

@@ -21,3 +21,16 @@ describe("autopay account", () => {
     expect(r.success && r.data.autopay_account).toBeNull();
   });
 });
+
+describe("For the business? on a bill", () => {
+  const base = { name: "Phone", amount: "100.00", recurrence: "monthly", due_date: "2026-12-03" };
+  it("defaults to not sorted, and keeps no share unless mixed", () => {
+    const r = billInput.parse(base);
+    expect(r).toMatchObject({ business_use: "unclassified", business_share_bp: null });
+    expect(billInput.parse({ ...base, business_use: "business", business_share: "40" })).toMatchObject({ business_use: "business", business_share_bp: null });
+  });
+  it("a mixed bill needs a whole percent from 1 to 99", () => {
+    expect(billInput.parse({ ...base, business_use: "mixed", business_share: "50 %" })).toMatchObject({ business_share_bp: 5000 });
+    for (const bad of ["", "0", "100", "12.5", "abc"]) expect(billInput.safeParse({ ...base, business_use: "mixed", business_share: bad }).success).toBe(false);
+  });
+});

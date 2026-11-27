@@ -24,6 +24,8 @@ function parseBillForm(form: FormData) {
     notes: String(form.get("notes") ?? ""),
     reminders_enabled: remindMode !== "off",
     reminder_offsets: remindMode === "custom" ? offsets : null,
+    business_use: String(form.get("business_use") ?? "unclassified"),
+    business_share: String(form.get("business_share") ?? ""),
   });
 }
 
