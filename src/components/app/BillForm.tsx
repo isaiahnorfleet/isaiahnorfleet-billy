@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { saveBillAction } from "@/app/actions/bills";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
-import { CATEGORIES, CATEGORY_LABELS } from "@/lib/domain/categories";
+import { BUSINESS_USES, BUSINESS_USE_LABELS, CATEGORIES, CATEGORY_LABELS, type BusinessUse } from "@/lib/domain/categories";
 import { RECURRENCES, RECURRENCE_LABELS, type Recurrence } from "@/lib/domain/recurrence";
 
 export interface BillFormValues {
@@ -22,6 +22,9 @@ export interface BillFormValues {
   notes: string;
   reminders_enabled: boolean;
   reminder_offsets: number[] | null;
+  /** Optional: new bills start "Not sorted yet". */
+  business_use?: BusinessUse;
+  business_share_pct?: string;
 }
 
 const OFFSET_CHOICES = [
@@ -50,6 +53,7 @@ export function BillForm({
   const [remindMode, setRemindMode] = useState<"default" | "custom" | "off">(!initial.reminders_enabled ? "off" : initial.reminder_offsets ? "custom" : "default");
   const [recurrence, setRecurrence] = useState<Recurrence>(initial.recurrence);
   const [autopay, setAutopay] = useState(initial.autopay);
+  const [businessUse, setBusinessUse] = useState<BusinessUse>(initial.business_use ?? "unclassified");
   const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
 
   useEffect(() => {
@@ -140,6 +144,24 @@ export function BillForm({
           </Field>
         )}
       </div>
+
+      <fieldset className="space-y-2 rounded-xl border border-line p-3">
+        <legend className="px-1 text-sm font-semibold">For the business? (optional)</legend>
+        <p className="text-sm text-muted">Business and partly-business bills are shared with Norfleet One, read-only, once you make a key in Settings. Personal bills never leave Billy.</p>
+        <div className="flex flex-wrap gap-2" role="radiogroup">
+          {BUSINESS_USES.map((u) => (
+            <label key={u} className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${businessUse === u ? "border-lime bg-lime/10 font-semibold" : "border-line"}`}>
+              <input type="radio" name="business_use" value={u} checked={businessUse === u} onChange={() => setBusinessUse(u)} className="accent-[var(--color-lime)]" />
+              {BUSINESS_USE_LABELS[u]}
+            </label>
+          ))}
+        </div>
+        {businessUse === "mixed" && (
+          <Field label="Business part (%)" htmlFor="business_share" error={errors.business_share} hint="For example 50 if half of this bill is for the business.">
+            <Input id="business_share" name="business_share" inputMode="numeric" defaultValue={initial.business_share_pct ?? ""} placeholder="50" maxLength={3} required invalid={!!errors.business_share} aria-describedby={errId("business_share")} />
+          </Field>
+        )}
+      </fieldset>
 
       <Field label="Payment website (optional)" htmlFor="payment_url" error={errors.payment_url} hint="Where you pay this bill. You'll pay on their site; Billy never asks for bank logins.">
         <Input id="payment_url" name="payment_url" type="url" inputMode="url" defaultValue={initial.payment_url} placeholder="https://" invalid={!!errors.payment_url} />

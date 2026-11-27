@@ -38,5 +38,7 @@ export const billInput = (over: Record<string, unknown> = {}) => ({
   notes: null,
   reminders_enabled: true,
   reminder_offsets: null,
+  business_use: "unclassified" as "unclassified" | "business" | "personal" | "mixed",
+  business_share_bp: null as number | null,
   ...over,
 });

@@ -144,3 +144,7 @@ only, never how often reminders are sent.
 - Resend Free: 3,000 emails/month, 100/day. Without a verified domain it can only send to the
   account owner's own address.
 - iPhone push requires iOS 16.4+ and Billy installed to the Home Screen.
+
+## Norfleet One bridge
+
+Business and partly-business bills are shared read-only with Norfleet One through signed GETs to `/api/connect/v1`. See `NORFLEET-ONE-BRIDGE.md`.

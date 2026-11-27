@@ -2,6 +2,7 @@ import type { Tx } from "@/lib/db/client";
 import type { LocalDate } from "@/lib/domain/dates";
 import type { Recurrence } from "@/lib/domain/recurrence";
 import type { BillInput } from "@/lib/validation";
+import type { BusinessUse } from "@/lib/domain/categories";
 import { materializeOccurrences } from "./occurrences";
 
 export interface BillRow {
@@ -19,6 +20,8 @@ export interface BillRow {
   notes: string | null;
   reminders_enabled: boolean;
   reminder_offsets: number[] | null;
+  business_use: BusinessUse;
+  business_share_bp: number | null;
   status: "active" | "archived";
   created_at: Date;
 }
@@ -36,10 +39,11 @@ export interface BillListRow extends BillRow {
 export async function createBill(tx: Tx, userId: string, input: BillInput, today: LocalDate): Promise<string> {
   const [row] = await tx<{ id: string }[]>`
     insert into bills (user_id, name, amount_minor, currency, category, recurrence, anchor_date, track_from,
-                       autopay, autopay_account, payment_url, notes, reminders_enabled, reminder_offsets)
+                       autopay, autopay_account, payment_url, notes, reminders_enabled, reminder_offsets,
+                       business_use, business_share_bp)
     values (${userId}, ${input.name}, ${input.amount_minor}, ${input.currency}, ${input.category}, ${input.recurrence},
             ${input.due_date}, ${input.due_date}, ${input.autopay}, ${input.autopay_account}, ${input.payment_url},
-            ${input.notes}, ${input.reminders_enabled}, ${input.reminder_offsets})
+            ${input.notes}, ${input.reminders_enabled}, ${input.reminder_offsets}, ${input.business_use}, ${input.business_share_bp})
     returning id`;
   await materializeOccurrences(tx, userId, today);
   return row.id;
@@ -97,7 +101,8 @@ export async function updateBill(tx: Tx, userId: string, billId: string, input: 
     update bills set name = ${input.name}, amount_minor = ${input.amount_minor}, currency = ${input.currency},
       category = ${input.category}, autopay = ${input.autopay},
       autopay_account = ${input.autopay_account}, payment_url = ${input.payment_url}, notes = ${input.notes},
-      reminders_enabled = ${input.reminders_enabled}, reminder_offsets = ${input.reminder_offsets}
+      reminders_enabled = ${input.reminders_enabled}, reminder_offsets = ${input.reminder_offsets},
+      business_use = ${input.business_use}, business_share_bp = ${input.business_share_bp}
     where id = ${billId} and user_id = ${userId}`;
 
   if (current.amount_minor !== input.amount_minor || current.currency !== input.currency) {

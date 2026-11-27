@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "norfleet:billy.obligations@1.0.0",
+  "title": "Billy obligation occurrence, v1.0.0 (pinned consumer copy; provider: billy)",
+  "$comment": "Only bills marked business or mixed are sent (L-10). Unclassified bills arrive as a count in completeness notes, never by name.",
+  "type": "object",
+  "required": ["id", "bill_id", "version", "name", "due_date", "amount_minor", "currency", "recurrence", "category", "business_use", "business_share_bp", "status", "paid_on", "payment_amount_minor", "autopay", "updated_at"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^occ_[A-Za-z0-9]{6,40}$" },
+    "bill_id": { "type": "string", "pattern": "^bill_[A-Za-z0-9]{6,40}$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "due_date": { "type": "string", "format": "date" },
+    "amount_minor": { "type": "integer", "minimum": 1, "maximum": 100000000000 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "recurrence": { "enum": ["once", "weekly", "biweekly", "monthly", "quarterly", "yearly"] },
+    "category": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$" },
+    "business_use": { "enum": ["business", "mixed"] },
+    "business_share_bp": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "status": { "enum": ["open", "paid", "skipped"] },
+    "paid_on": { "type": ["string", "null"], "format": "date" },
+    "payment_amount_minor": { "type": ["integer", "null"], "minimum": 0 },
+    "autopay": { "type": "boolean" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

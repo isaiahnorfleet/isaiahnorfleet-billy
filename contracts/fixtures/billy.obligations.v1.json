@@ -1,0 +1,182 @@
+{
+ "contract": "billy.obligations",
+ "version": "1.0.0",
+ "note": "Fictional records only.",
+ "valid": [
+  {
+   "name": "business subscription",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "business",
+    "business_share_bp": 10000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   }
+  },
+  {
+   "name": "mixed phone bill, half business",
+   "record": {
+    "id": "occ_phone0001",
+    "bill_id": "bill_phone01",
+    "version": 1,
+    "name": "Phone (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 10000,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "phone",
+    "business_use": "mixed",
+    "business_share_bp": 5000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   }
+  },
+  {
+   "name": "paid occurrence",
+   "record": {
+    "id": "occ_a1b2c3d5",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "business",
+    "business_share_bp": 10000,
+    "status": "paid",
+    "paid_on": "2026-11-03",
+    "payment_amount_minor": 8049,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   }
+  }
+ ],
+ "poison": [
+  {
+   "name": "unclassified bill sent by name",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "unclassified",
+    "business_share_bp": 10000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   },
+   "expect": "schema:/business_use:enum"
+  },
+  {
+   "name": "mixed bill at 100 percent",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "mixed",
+    "business_share_bp": 10000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   },
+   "expect": "semantic:mixed_share"
+  },
+  {
+   "name": "amount as a string",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": "80.49",
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "business",
+    "business_share_bp": 10000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   },
+   "expect": "schema:/amount_minor:type"
+  },
+  {
+   "name": "paid with no date",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "business",
+    "business_share_bp": 10000,
+    "status": "paid",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   },
+   "expect": "semantic:paid_without_date"
+  },
+  {
+   "name": "business bill at half share",
+   "record": {
+    "id": "occ_a1b2c3d4",
+    "bill_id": "bill_adobe01",
+    "version": 1,
+    "name": "Adobe Creative Cloud (fictional)",
+    "due_date": "2026-12-03",
+    "amount_minor": 8049,
+    "currency": "CAD",
+    "recurrence": "monthly",
+    "category": "subscription",
+    "business_use": "business",
+    "business_share_bp": 5000,
+    "status": "open",
+    "paid_on": null,
+    "payment_amount_minor": null,
+    "autopay": true,
+    "updated_at": "2026-11-27T09:52:00-05:00"
+   },
+   "expect": "semantic:business_share"
+  }
+ ]
+}

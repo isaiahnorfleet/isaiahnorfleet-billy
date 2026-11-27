@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATEGORIES } from "@/lib/domain/categories";
+import { BUSINESS_USES, CATEGORIES } from "@/lib/domain/categories";
 import { isLocalDate } from "@/lib/domain/dates";
 import { parseAmountToMinor } from "@/lib/domain/money";
 import { RECURRENCES } from "@/lib/domain/recurrence";
@@ -37,6 +37,8 @@ export const billInput = z
     notes: optionalText(1000),
     reminders_enabled: z.boolean().default(true),
     reminder_offsets: offsets.nullable().default(null),
+    business_use: z.enum(BUSINESS_USES).default("unclassified"),
+    business_share: z.string().optional(),
   })
   .transform((v, ctx) => {
     const amount_minor = parseAmountToMinor(v.amount, v.currency);
@@ -57,7 +59,19 @@ export const billInput = z
       ctx.addIssue({ code: "custom", path: ["autopay_account"], message: "Use a nickname and at most the last 4 digits, not the full number" });
       return z.NEVER;
     }
-    return { ...v, amount_minor, payment_url, autopay_account: v.autopay ? v.autopay_account : null };
+    // Mixed bills need the business share as a whole percent from 1 to 99 (stored in basis points).
+    let business_share_bp: number | null = null;
+    if (v.business_use === "mixed") {
+      const pct = Number((v.business_share ?? "").trim().replace(/\s*%$/, ""));
+      if (!Number.isInteger(pct) || pct < 1 || pct > 99) {
+        ctx.addIssue({ code: "custom", path: ["business_share"], message: "Enter the business part as a percent from 1 to 99" });
+        return z.NEVER;
+      }
+      business_share_bp = pct * 100;
+    }
+    const { business_share: _share, ...rest } = v;
+    void _share;
+    return { ...rest, amount_minor, payment_url, autopay_account: v.autopay ? v.autopay_account : null, business_share_bp };
   });
 export type BillInput = z.output<typeof billInput>;
 
